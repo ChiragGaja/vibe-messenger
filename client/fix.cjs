@@ -1,0 +1,31 @@
+const fs = require('fs');
+const p = 'c:/Users/Lenovo/.gemini/antigravity/scratch/chat app/client/src/components/Sidebar.jsx';
+let c = fs.readFileSync(p, 'utf8');
+
+c = c.replace(/flex flex - col/g, 'flex flex-col');
+c = c.replace(/items - center/g, 'items-center');
+c = c.replace(/p - 2/g, 'p-2');
+c = c.replace(/rounded - xl/g, 'rounded-xl');
+c = c.replace(/transition - colors/g, 'transition-colors');
+c = c.replace(/cursor - pointer/g, 'cursor-pointer');
+c = c.replace(/w - full/g, 'w-full');
+c = c.replace(/max - w - \[80px\]/g, 'max-w-[80px]');
+c = c.replace(/bottom - 0/g, 'bottom-0');
+c = c.replace(/right - 0/g, 'right-0');
+c = c.replace(/w - 3/g, 'w-3');
+c = c.replace(/h - 3/g, 'h-3');
+c = c.replace(/rounded - full/g, 'rounded-full');
+c = c.replace(/border - 2/g, 'border-2');
+c = c.replace(/border - surface/g, 'border-surface');
+c = c.replace(/flex items - center/g, 'flex items-center');
+c = c.replace(/gap - 3/g, 'gap-3');
+c = c.replace(/px - 3/g, 'px-3');
+c = c.replace(/py - 2\.5/g, 'py-2.5');
+c = c.replace(/transition - all/g, 'transition-all');
+c = c.replace(/duration - 150/g, 'duration-150');
+c = c.replace(/mb - 0\.5/g, 'mb-0.5');
+c = c.replace(/\`Bearer \$\{ token \} \`/g, '\`Bearer ${token}\`');
+c = c.replace(/\`Last seen \$\{ formatLastSeen\(friend\.last_seen\) \} \`/g, '\`Last seen ${formatLastSeen(friend.last_seen)}\`');
+
+fs.writeFileSync(p, c, 'utf8');
+console.log('Fixed Sidebar.jsx');

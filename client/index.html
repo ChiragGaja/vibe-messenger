@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/vibe-icon.png" />
+    <link rel="apple-touch-icon" href="/vibe-icon.png" />
+    <meta name="theme-color" content="#09090b" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <title>Vibe</title>
+    <script>
+      window.addEventListener("error", function(e) {
+        if (e.message === "Script error." || !e.filename) return;
+        if (!document.getElementById("error-log")) {
+          const div = document.createElement("div");
+          div.id = "error-log";
+          div.style = "position: fixed; top: 0; left: 0; background: red; color: white; padding: 20px; z-index: 99999; font-family: monospace; font-size: 14px; width: 100%; white-space: pre-wrap; max-height: 50vh; overflow-y: auto;";
+          document.body.prepend(div);
+        }
+        document.getElementById("error-log").innerText += "\nError: " + e.message + "\nFile: " + e.filename + " Line: " + e.lineno + "\n";
+      });
+      window.addEventListener("unhandledrejection", function(e) {
+        if (!document.getElementById("error-log")) {
+          const div = document.createElement("div");
+          div.id = "error-log";
+          div.style = "position: fixed; top: 0; left: 0; background: red; color: white; padding: 20px; z-index: 99999; font-family: monospace; font-size: 14px; width: 100%; white-space: pre-wrap; max-height: 50vh; overflow-y: auto;";
+          document.body.prepend(div);
+        }
+        document.getElementById("error-log").innerText += "\nUnhandled Promise: " + (e.reason?.message || e.reason) + "\n";
+      });
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
