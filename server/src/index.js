@@ -23,8 +23,7 @@ const aiRoutes = require('./routes/ai');
 const app = express();
 const server = http.createServer(app);
 
-// ─── HEALTH CHECK (VERY TOP — above all middleware) ─────
-app.get('/', (req, res) => res.json({ status: 'ok', service: 'Vibe API', version: '1.0.0' }));
+// ─── HEALTH CHECK (above all middleware) ─────
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
 // ─── REQUEST LOGGER ─────────────────────────────────────
