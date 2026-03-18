@@ -39,8 +39,10 @@ app.use((req, res, next) => {
 });
 
 // ─── MIDDLEWARE ──────────────────────────────────────────
-// HTTP Security Headers
-app.use(helmet());
+// HTTP Security Headers (Adjusted for SPA inline scripts)
+app.use(helmet({
+    contentSecurityPolicy: false, // Disable strict CSP for initial deployment stability
+}));
 
 // Rate Limiting (Protects from DDoS and brute force)
 const limiter = rateLimit({
@@ -102,16 +104,24 @@ app.use('/api/ai', aiRoutes);
 const distPath = path.join(__dirname, '..', '..', 'client', 'dist');
 
 if (fs.existsSync(distPath)) {
-    console.log(`📂 Serving static files from: ${distPath}`);
+    console.log(`📂 Static serving active: ${distPath}`);
     app.use(express.static(distPath));
     
-    // SPA catch-all (Regex is more reliable in Express 5 for non-API routes)
-    app.get(/^(?!\/api).*/, (req, res) => {
-        if (req.url.startsWith('/api')) return next();
-        res.sendFile(path.join(distPath, 'index.html'));
+    // SPA catch-all: Serve index.html for any non-API, non-file route
+    app.get(/^(?!\/api).*/, (req, res, next) => {
+        // If it looks like a file (has an extension), let it fall through
+        if (path.extname(req.url)) return next();
+        
+        res.sendFile(path.join(distPath, 'index.html'), (err) => {
+            if (err) {
+                console.error('Error sending index.html:', err.message);
+                next();
+            }
+        });
     });
 } else {
-    console.warn(`⚠️ Warning: Static dist folder not found at ${distPath}. Skipping static serving.`);
+    console.warn(`⚠️ Warning: Static dist folder not found at ${distPath}`);
+    console.log('Current directory:', __dirname);
 }
 
 // ─── 404 Handler (Only for unmatched API routes) ────────
