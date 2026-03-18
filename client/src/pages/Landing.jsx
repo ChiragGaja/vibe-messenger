@@ -58,7 +58,7 @@ export default function Landing() {
     ];
 
     return (
-        <div className="min-h-screen bg-[#fafafa] text-[#09090b] selection:bg-indigo-100 selection:text-indigo-900 overflow-x-hidden">
+        <div className="min-h-screen w-full min-w-full bg-[#fafafa] text-[#09090b] selection:bg-indigo-100 selection:text-indigo-900 overflow-x-hidden">
             {/* Navigation */}
             <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 border-b ${scrolled ? 'bg-[#f8f8f8]/90 backdrop-blur-xl border-zinc-200 py-3' : 'bg-[#f8f8f8] border-transparent py-5'}`}>
                 <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
@@ -104,7 +104,7 @@ export default function Landing() {
                             variants={fadeInUp}
                             className="text-lg md:text-2xl text-zinc-500 max-w-2xl mx-auto mb-12 leading-relaxed font-light"
                         >
-                            A lighting-fast, beautifully designed chat platform for modern communication. No clutter, just conversation.
+                            A lightning-fast, beautifully designed chat platform for modern communication. No clutter, just conversation.
                         </motion.p>
                         
                         <motion.div 
@@ -156,7 +156,12 @@ export default function Landing() {
                     <div className="flex items-center opacity-100">
                         <span className="text-3xl font-black tracking-tight text-zinc-900">Vibe</span>
                     </div>
-                    <p className="text-xs text-zinc-400 font-medium tracking-tight">© 2026 Vibe Messenger. All privileges reserved.</p>
+                    <div className="flex items-center gap-6 text-xs text-zinc-400 font-medium">
+                        <Link to="/privacy" className="hover:text-zinc-600 transition-colors">Privacy Policy</Link>
+                        <span className="text-zinc-300">|</span>
+                        <Link to="/terms" className="hover:text-zinc-600 transition-colors">Terms of Service</Link>
+                    </div>
+                    <p className="text-xs text-zinc-400 font-medium tracking-tight">© 2026 Vibe Messenger. All rights reserved.</p>
                 </div>
             </footer>
         </div>

@@ -26,9 +26,11 @@
   }
 
   html, body, #root {
-    height: 100dvh;
-    height: 100vh; /* fallback */
-    width: 100%;
+    min-height: 100dvh;
+    min-height: 100vh; /* fallback */
+    width: 100vw;
+    margin: 0;
+    padding: 0;
     overflow-x: hidden;
     font-family: 'Poppins', system-ui, -apple-system, sans-serif;
     background: rgb(var(--bg-rgb));
@@ -37,10 +39,8 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
-  @supports (height: 100dvh) {
-    html, body, #root {
-      height: 100dvh;
-    }
+  * {
+    box-sizing: border-box;
   }
 }
 

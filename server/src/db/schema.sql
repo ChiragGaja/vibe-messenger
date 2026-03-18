@@ -116,7 +116,14 @@ CREATE INDEX IF NOT EXISTS idx_reactions_message ON message_reactions(message_id
 CREATE INDEX IF NOT EXISTS idx_starred_user ON starred_messages(user_id);
 CREATE INDEX IF NOT EXISTS idx_messages_group ON messages(group_id);
 CREATE INDEX IF NOT EXISTS idx_group_members_user ON group_members(user_id);
-ALTER TABLE messages ADD CONSTRAINT fk_group FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'fk_group'
+  ) THEN
+    ALTER TABLE messages ADD CONSTRAINT fk_group FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE;
+  END IF;
+END $$;
 
 -- Statuses (Stories)
 CREATE TABLE IF NOT EXISTS statuses (

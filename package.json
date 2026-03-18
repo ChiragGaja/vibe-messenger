@@ -1,0 +1,17 @@
+{
+  "name": "vibe-messenger-unified",
+  "version": "1.0.0",
+  "description": "Unified Vibe Messenger deployment (Express + React)",
+  "private": true,
+  "scripts": {
+    "install:all": "cd client && npm install && cd ../server && npm install",
+    "build:client": "cd client && npm run build",
+    "dev:server": "cd server && npm run dev",
+    "dev:client": "cd client && npm run dev",
+    "start": "cd server && node src/index.js",
+    "build": "npm run build:client"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

@@ -23,6 +23,22 @@ const aiRoutes = require('./routes/ai');
 const app = express();
 const server = http.createServer(app);
 
+// ─── HEALTH CHECK (VERY TOP — above all middleware) ─────
+app.get('/', (req, res) => res.json({ status: 'ok', service: 'Vibe API', version: '1.0.0' }));
+app.get('/health', (req, res) => res.json({ status: 'ok' }));
+
+// ─── REQUEST LOGGER ─────────────────────────────────────
+app.use((req, res, next) => {
+    const start = Date.now();
+    res.on('finish', () => {
+        const duration = Date.now() - start;
+        if (req.url !== '/health' && req.url !== '/') {
+            console.log(`${req.method} ${req.url} ${res.statusCode} ${duration}ms ${req.headers.origin || '-'}`);
+        }
+    });
+    next();
+});
+
 // ─── MIDDLEWARE ──────────────────────────────────────────
 // HTTP Security Headers
 app.use(helmet());
@@ -37,7 +53,7 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-// Strict CORS Policy
+// ─── CORS Policy ────────────────────────────────────────
 const allowedOrigins = [
     'http://localhost:5173', 
     'http://localhost:3000',
@@ -46,18 +62,34 @@ const allowedOrigins = [
 
 app.use(cors({
     origin: function (origin, callback) {
-        // Allow requests with no origin (like mobile apps, curl) or allowed origins
-        if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
+        // Allow requests with no origin (mobile apps, curl, health checks)
+        if (!origin) return callback(null, true);
+        
+        // Allow all origins in development
+        if (process.env.NODE_ENV !== 'production') return callback(null, true);
+        
+        // Normalize: lowercase + strip trailing slash
+        const cleanOrigin = origin.replace(/\/$/, '').toLowerCase();
+        const cleanAllowed = allowedOrigins.map(o => o.trim().replace(/\/$/, '').toLowerCase());
+        
+        // Check exact match OR any *.vercel.app deployment
+        if (cleanAllowed.includes(cleanOrigin) || cleanOrigin.endsWith('.vercel.app')) {
             callback(null, true);
         } else {
+            console.warn(`CORS blocked: ${origin}`);
             callback(new Error('Not allowed by CORS'));
         }
     },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// CORS middleware handles preflight requests automatically
+// app.options('*', cors()); 
+
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // ─── API ROUTES ─────────────────────────────────────────
 app.use('/api/auth', authRoutes);
@@ -67,14 +99,35 @@ app.use('/api/groups', groupRoutes);
 app.use('/api/status', statusRoutes);
 app.use('/api/ai', aiRoutes);
 
-// ─── HEALTH CHECK ───────────────────────────────────────
-app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+// ─── SERVE STATIC FILES (React) ──────────────────────────
+const distPath = path.join(__dirname, '..', '..', 'client', 'dist');
+
+if (fs.existsSync(distPath)) {
+    console.log(`📂 Serving static files from: ${distPath}`);
+    app.use(express.static(distPath));
+    
+    // SPA catch-all: Serve index.html for any non-API route
+    app.get('*', (req, res, next) => {
+        if (req.url.startsWith('/api')) return next();
+        res.sendFile(path.join(distPath, 'index.html'));
+    });
+} else {
+    console.warn(`⚠️ Warning: Static dist folder not found at ${distPath}. Skipping static serving.`);
+}
+
+// ─── 404 Handler (Only for API routes now) ───────────────
+app.use('/api/*', (req, res) => {
+    res.status(404).json({ error: 'API Route not found', path: req.url });
 });
 
+// ─── Global Error Handler ───────────────────────────────
 app.use((err, req, res, next) => {
-    console.error('GLOBAL ERROR:', err);
-    res.status(500).json({ error: err.message, details: err });
+    console.error('GLOBAL ERROR:', err.message);
+    const statusCode = err.status || 500;
+    res.status(statusCode).json({ 
+        error: statusCode === 500 ? 'Internal server error.' : err.message,
+        success: false 
+    });
 });
 
 // ─── SOCKET.IO SETUP ────────────────────────────────────
@@ -114,6 +167,15 @@ server.listen(PORT, '0.0.0.0', async () => {
     
     // Start automated status cleanup routine
     startStatusCleanupRoutine();
+});
+
+// ─── GRACEFUL SHUTDOWN ──────────────────────────────────
+process.on('SIGTERM', () => {
+    console.log('🛑 SIGTERM received. Shutting down gracefully...');
+    server.close(() => {
+        pool.end();
+        process.exit(0);
+    });
 });
 
 // ─── STATUS CLEANUP ROUTINE ─────────────────────────────

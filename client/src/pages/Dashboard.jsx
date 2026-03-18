@@ -12,6 +12,7 @@ import IncomingCallDialog from '../components/IncomingCallDialog';
 import CallWindow from '../components/CallWindow';
 import StatusUploader from '../components/StatusUploader';
 import StatusViewer from '../components/StatusViewer';
+import InstallPrompt from '../components/InstallPrompt';
 import { MessageSquare, PanelLeftOpen } from 'lucide-react';
 
 export default function Dashboard() {
@@ -252,6 +253,7 @@ export default function Dashboard() {
             </AnimatePresence>
 
             <IncomingCallDialog />
+            <InstallPrompt />
             <CallWindow />
         </div>
     );
