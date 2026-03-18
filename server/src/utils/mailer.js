@@ -15,6 +15,7 @@ const sendOTP = async (email, otp) => {
     const mailOptions = {
         from: '"Vibe" <noreply@vibe.chat>',
         to: email,
+        subject: 'Welcome to Vibe! Verify Your Email',
         html: `
             <!DOCTYPE html>
             <html>
