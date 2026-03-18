@@ -99,7 +99,12 @@ app.use('/api/status', statusRoutes);
 app.use('/api/ai', aiRoutes);
 
 // ─── SERVE STATIC FILES (React) ──────────────────────────
-const distPath = path.join(__dirname, '..', '..', 'client', 'dist');
+const rootDir = process.cwd();
+const distPath = path.join(rootDir, 'client', 'dist');
+
+console.log(`🔍 Deployment Link: ${process.env.FRONTEND_URL || 'Not Set'}`);
+console.log(`📁 Root: ${rootDir}`);
+console.log(`📁 Dist: ${distPath}`);
 
 if (fs.existsSync(distPath)) {
     console.log(`📂 Static serving active: ${distPath}`);
