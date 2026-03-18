@@ -23,6 +23,27 @@ const aiRoutes = require('./routes/ai');
 const app = express();
 const server = http.createServer(app);
 
+// ─── PROXY TRUST (Required for Railway/Proxies) ──────────
+app.set('trust proxy', 1);
+
+// ─── STATIC PATH RESOLUTION ──────────────────────────────
+const rootDir = process.cwd();
+const possibleDistPaths = [
+    path.join(rootDir, 'client', 'dist'),
+    path.join(rootDir, '..', 'client', 'dist'),
+    path.join(__dirname, '..', '..', 'client', 'dist')
+];
+const distPath = possibleDistPaths.find(p => fs.existsSync(p));
+
+// ─── SERVE STATIC ASSETS (BEFORE any middleware/CORS) ───
+if (distPath) {
+    console.log(`📂 Static serving active: ${distPath}`);
+    app.use(express.static(distPath, {
+        maxAge: '1d',
+        etag: true
+    }));
+}
+
 // ─── HEALTH CHECK (above all middleware) ─────
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
@@ -98,32 +119,14 @@ app.use('/api/groups', groupRoutes);
 app.use('/api/status', statusRoutes);
 app.use('/api/ai', aiRoutes);
 
-// ─── SERVE STATIC FILES (React) ──────────────────────────
-const possibleDistPaths = [
-    path.join(process.cwd(), 'client', 'dist'),      // If running from root
-    path.join(process.cwd(), '..', 'client', 'dist'), // If running from server folder
-    path.join(__dirname, '..', '..', 'client', 'dist') // Absolute relative to this file
-];
-
-let distPath = possibleDistPaths.find(p => fs.existsSync(p));
-
-console.log(`🔍 Root: ${process.cwd()}`);
-console.log(`🔍 __dirname: ${__dirname}`);
-
+// ─── SPA CATCH-ALL (Bottom) ──────────────────────────────
 if (distPath) {
-    console.log(`📂 Static serving active: ${distPath}`);
-    app.use(express.static(distPath));
-    
-    // SPA catch-all
     app.get(/^(?!\/api).*/, (req, res, next) => {
         if (path.extname(req.url)) return next();
         res.sendFile(path.join(distPath, 'index.html'), (err) => {
             if (err) next();
         });
     });
-} else {
-    console.error('❌ CRITICAL: Could not find client/dist folder in any expected location.');
-    possibleDistPaths.forEach(p => console.log(`   - Checked: ${p}`));
 }
 
 // ─── 404 Handler (Only for unmatched API routes) ────────
