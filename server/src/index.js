@@ -31,9 +31,7 @@ app.use((req, res, next) => {
     const start = Date.now();
     res.on('finish', () => {
         const duration = Date.now() - start;
-        if (req.url !== '/health' && req.url !== '/') {
-            console.log(`${req.method} ${req.url} ${res.statusCode} ${duration}ms ${req.headers.origin || '-'}`);
-        }
+        console.log(`[${new Date().toISOString()}] ${req.method} ${req.url} ${res.statusCode} ${duration}ms`);
     });
     next();
 });
@@ -131,7 +129,7 @@ app.use('/api', (req, res) => {
 
 // ─── Global Error Handler ───────────────────────────────
 app.use((err, req, res, next) => {
-    console.error('GLOBAL ERROR:', err.message);
+    console.error(`🔴 ERROR [${req.method} ${req.url}]:`, err.stack || err.message);
     const statusCode = err.status || 500;
     res.status(statusCode).json({ 
         error: statusCode === 500 ? 'Internal server error.' : err.message,
