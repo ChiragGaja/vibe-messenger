@@ -99,32 +99,31 @@ app.use('/api/status', statusRoutes);
 app.use('/api/ai', aiRoutes);
 
 // ─── SERVE STATIC FILES (React) ──────────────────────────
-const rootDir = process.cwd();
-const distPath = path.join(rootDir, 'client', 'dist');
+const possibleDistPaths = [
+    path.join(process.cwd(), 'client', 'dist'),      // If running from root
+    path.join(process.cwd(), '..', 'client', 'dist'), // If running from server folder
+    path.join(__dirname, '..', '..', 'client', 'dist') // Absolute relative to this file
+];
 
-console.log(`🔍 Deployment Link: ${process.env.FRONTEND_URL || 'Not Set'}`);
-console.log(`📁 Root: ${rootDir}`);
-console.log(`📁 Dist: ${distPath}`);
+let distPath = possibleDistPaths.find(p => fs.existsSync(p));
 
-if (fs.existsSync(distPath)) {
+console.log(`🔍 Root: ${process.cwd()}`);
+console.log(`🔍 __dirname: ${__dirname}`);
+
+if (distPath) {
     console.log(`📂 Static serving active: ${distPath}`);
     app.use(express.static(distPath));
     
-    // SPA catch-all: Serve index.html for any non-API, non-file route
+    // SPA catch-all
     app.get(/^(?!\/api).*/, (req, res, next) => {
-        // If it looks like a file (has an extension), let it fall through
         if (path.extname(req.url)) return next();
-        
         res.sendFile(path.join(distPath, 'index.html'), (err) => {
-            if (err) {
-                console.error('Error sending index.html:', err.message);
-                next();
-            }
+            if (err) next();
         });
     });
 } else {
-    console.warn(`⚠️ Warning: Static dist folder not found at ${distPath}`);
-    console.log('Current directory:', __dirname);
+    console.error('❌ CRITICAL: Could not find client/dist folder in any expected location.');
+    possibleDistPaths.forEach(p => console.log(`   - Checked: ${p}`));
 }
 
 // ─── 404 Handler (Only for unmatched API routes) ────────
