@@ -106,7 +106,13 @@ router.post(
             );
 
             // Send OTP email
-            await sendOTP(email, otp);
+            const emailSent = await sendOTP(email, otp);
+            if (!emailSent) {
+                // If email fails, we shouldn't just leave a "dead" unverified user.
+                // However, the user is already in the DB. We could delete them or just tell them to resend.
+                // Choosing to return 500 for now to indicate a service failure.
+                throw new Error('Failed to send verification email. Please try again.');
+            }
 
             res.status(201).json({
                 message: 'Registration successful. Please verify your email.',
