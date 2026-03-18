@@ -106,8 +106,8 @@ if (fs.existsSync(distPath)) {
     console.log(`📂 Serving static files from: ${distPath}`);
     app.use(express.static(distPath));
     
-    // SPA catch-all: Serve index.html for any non-API route
-    app.get('*', (req, res, next) => {
+    // SPA catch-all (Regex is more reliable in Express 5 for non-API routes)
+    app.get(/^(?!\/api).*/, (req, res) => {
         if (req.url.startsWith('/api')) return next();
         res.sendFile(path.join(distPath, 'index.html'));
     });
@@ -115,8 +115,8 @@ if (fs.existsSync(distPath)) {
     console.warn(`⚠️ Warning: Static dist folder not found at ${distPath}. Skipping static serving.`);
 }
 
-// ─── 404 Handler (Only for API routes now) ───────────────
-app.use('/api/*', (req, res) => {
+// ─── 404 Handler (Only for unmatched API routes) ────────
+app.use('/api', (req, res) => {
     res.status(404).json({ error: 'API Route not found', path: req.url });
 });
 
