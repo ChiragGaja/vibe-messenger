@@ -92,8 +92,10 @@ app.use(cors({
         const cleanOrigin = origin.replace(/\/$/, '').toLowerCase();
         const cleanAllowed = allowedOrigins.map(o => o.trim().replace(/\/$/, '').toLowerCase());
         
-        // Check exact match OR any *.vercel.app deployment
-        if (cleanAllowed.includes(cleanOrigin) || cleanOrigin.endsWith('.vercel.app')) {
+        // Check exact match OR any supported deployment wildcard
+        if (cleanAllowed.includes(cleanOrigin) || 
+            cleanOrigin.endsWith('.vercel.app') || 
+            cleanOrigin.endsWith('.up.railway.app')) {
             callback(null, true);
         } else {
             console.warn(`CORS blocked: ${origin}`);
