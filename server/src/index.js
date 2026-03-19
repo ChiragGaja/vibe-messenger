@@ -18,7 +18,6 @@ const friendRoutes = require('./routes/friends');
 const messageRoutes = require('./routes/messages');
 const groupRoutes = require('./routes/groups');
 const statusRoutes = require('./routes/status');
-const aiRoutes = require('./routes/ai');
 
 const app = express();
 const server = http.createServer(app);
@@ -101,7 +100,6 @@ app.use('/api/friends', friendRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/groups', groupRoutes);
 app.use('/api/status', statusRoutes);
-app.use('/api/ai', aiRoutes);
 
 // ─── 404 Handler (Only for unmatched API routes) ────────
 app.use('/api', (req, res) => {

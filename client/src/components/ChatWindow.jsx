@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowUp, Phone, Video, Info, ArrowLeft, PanelLeftOpen, Sparkles, X, Search } from 'lucide-react';
+import { ArrowUp, Phone, Video, Info, ArrowLeft, PanelLeftOpen, X, Search } from 'lucide-react';
 import useChatStore from '../store/chatStore';
 import api from '../api/axios';
 import { getSocket } from '../socket/socket';
@@ -23,8 +23,7 @@ export default function ChatWindow({ onBack, onToggleSidebar, sidebarOpen }) {
     const [loadingMore, setLoadingMore] = useState(false);
     const [showGroupInfo, setShowGroupInfo] = useState(false);
     const [showFriendProfile, setShowFriendProfile] = useState(false);
-    const [isSummarizing, setIsSummarizing] = useState(false);
-    const [aiSummary, setAiSummary] = useState(null);
+    const [showFriendProfile, setShowFriendProfile] = useState(false);
 
     // Search State
     const [showSearch, setShowSearch] = useState(false);
@@ -110,7 +109,6 @@ export default function ChatWindow({ onBack, onToggleSidebar, sidebarOpen }) {
             }
         };
         loadMessages();
-        setAiSummary(null); // Reset summary when chat changes
         setShowSearch(false);
         setSearchQuery('');
         setSearchResults([]);
@@ -139,25 +137,6 @@ export default function ChatWindow({ onBack, onToggleSidebar, sidebarOpen }) {
         }
     };
 
-    const fetchSummary = async () => {
-        if (!activeChat) return;
-        setIsSummarizing(true);
-        setAiSummary(null);
-        try {
-            const endpoint = `/ai/summarize`;
-            const payload = activeChat.is_group 
-                ? { groupId: activeChat.id } 
-                : { targetUserId: activeChat.id };
-            
-            const { data } = await api.post(endpoint, payload);
-            setAiSummary(data.summary);
-        } catch (error) {
-            console.error('Failed to summarize:', error);
-            setAiSummary('Failed to generate summary. Please try again.');
-        } finally {
-            setIsSummarizing(false);
-        }
-    };
 
     const handleSearch = async (e) => {
         e.preventDefault();
@@ -322,29 +301,6 @@ export default function ChatWindow({ onBack, onToggleSidebar, sidebarOpen }) {
             {/* Messages */}
             <div ref={containerRef} className="flex-1 overflow-y-auto px-3 md:px-5 py-4 flex flex-col gap-1 relative">
                 
-                {/* AI Summary Banner */}
-                <AnimatePresence>
-                    {aiSummary && (
-                        <motion.div
-                            initial={{ opacity: 0, y: -20, scale: 0.95 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.95 }}
-                            className="sticky top-0 z-20 mb-4 mx-auto w-full max-w-lg bg-surface/80 backdrop-blur-md border border-purple-500/30 rounded-2xl shadow-xl overflow-hidden"
-                        >
-                            <div className="bg-gradient-to-r from-purple-500/20 to-indigo-500/20 px-4 py-2 flex items-center justify-between border-b border-white/5">
-                                <div className="flex items-center gap-2 text-purple-400 font-semibold text-xs uppercase tracking-wider">
-                                    <Sparkles size={14} /> AI Summary
-                                </div>
-                                <button onClick={() => setAiSummary(null)} className="text-text-muted hover:text-text">
-                                    <X size={14} />
-                                </button>
-                            </div>
-                            <div className="p-4 text-sm text-text leading-relaxed">
-                                {aiSummary}
-                            </div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
 
                 {hasMoreMessages && (
                     <button
