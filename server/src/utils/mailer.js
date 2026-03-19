@@ -1,5 +1,8 @@
 const nodemailer = require('nodemailer');
 
+// Force IPv4 for SMTP connections (fixes ENETUNREACH on Railway/IPv6 environments)
+require('dns').setDefaultResultOrder('ipv4first');
+
 // This mailer uses Gmail via environment variables.
 // To use this, you MUST have an App Password generated for the Gmail account.
 
