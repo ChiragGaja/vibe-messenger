@@ -23,26 +23,8 @@ const aiRoutes = require('./routes/ai');
 const app = express();
 const server = http.createServer(app);
 
-// ─── PROXY TRUST (Required for Railway/Proxies) ──────────
+// ─── PROXY TRUST (Required for Render/Proxies) ──────────
 app.set('trust proxy', 1);
-
-// ─── STATIC PATH RESOLUTION ──────────────────────────────
-const rootDir = process.cwd();
-const possibleDistPaths = [
-    path.join(rootDir, 'client', 'dist'),
-    path.join(rootDir, '..', 'client', 'dist'),
-    path.join(__dirname, '..', '..', 'client', 'dist')
-];
-const distPath = possibleDistPaths.find(p => fs.existsSync(p));
-
-// ─── SERVE STATIC ASSETS (BEFORE any middleware/CORS) ───
-if (distPath) {
-    console.log(`📂 Static serving active: ${distPath}`);
-    app.use(express.static(distPath, {
-        maxAge: '1d',
-        etag: true
-    }));
-}
 
 // ─── HEALTH CHECK (above all middleware) ─────
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
@@ -120,16 +102,6 @@ app.use('/api/messages', messageRoutes);
 app.use('/api/groups', groupRoutes);
 app.use('/api/status', statusRoutes);
 app.use('/api/ai', aiRoutes);
-
-// ─── SPA CATCH-ALL (Bottom) ──────────────────────────────
-if (distPath) {
-    app.get(/^(?!\/api).*/, (req, res, next) => {
-        if (path.extname(req.url)) return next();
-        res.sendFile(path.join(distPath, 'index.html'), (err) => {
-            if (err) next();
-        });
-    });
-}
 
 // ─── 404 Handler (Only for unmatched API routes) ────────
 app.use('/api', (req, res) => {
