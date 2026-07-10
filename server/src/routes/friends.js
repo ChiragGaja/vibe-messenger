@@ -2,8 +2,8 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const pool = require('../config/db');
 const auth = require('../middleware/auth');
-
 const router = express.Router();
+const { decrypt } = require('../utils/encryption');
 
 // All friend routes require authentication
 router.use(auth);
@@ -226,8 +226,12 @@ router.get('/', async (req, res) => {
              ORDER BY COALESCE(lm.created_at, u.last_seen) DESC`,
             [userId]
         );
+        const friends = result.rows.map(f => ({
+            ...f,
+            last_message_content: decrypt(f.last_message_content) || f.last_message_content
+        }));
 
-        res.json({ friends: result.rows });
+        res.json({ friends });
     } catch (error) {
         console.error('List friends error:', error);
         res.status(500).json({ error: 'Internal server error.' });

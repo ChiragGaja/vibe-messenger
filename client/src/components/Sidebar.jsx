@@ -25,16 +25,14 @@ export default function Sidebar({ onDataRefresh, onOpenProfile, sidebarOpen, onT
     const [search, setSearch] = useState('');
     const [activeTab, setActiveTab] = useState('chats');
     const [starredMessages, setStarredMessages] = useState([]);
-    const { user, friends, groups = [], friendRequests, onlineUsers, activeChat, setActiveChat, logout, token, typingUsers } = useChatStore();
+    const { user, friends, groups = [], friendRequests, onlineUsers, activeChat, setActiveChat, logout, typingUsers } = useChatStore();
     const { theme, toggleTheme } = useTheme();
 
     useEffect(() => {
-        if (activeTab === 'starred' && token) {
-            api.get('/messages/starred/list', {
-                headers: { Authorization: 'Bearer ' + token }
-            }).then(res => setStarredMessages(res.data)).catch(console.error);
+        if (activeTab === 'starred' && user) {
+            api.get('/messages/starred/list').then(res => setStarredMessages(res.data)).catch(console.error);
         }
-    }, [activeTab, token]);
+    }, [activeTab, user]);
 
     // Fetch statuses
     useEffect(() => {

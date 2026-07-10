@@ -16,8 +16,11 @@ export default defineConfig({
       },
     }),
     VitePWA({
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.js',
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
+      includeAssets: ['vibe-icon.png', 'apple-touch-icon.png'],
       manifest: {
         name: 'Vibe',
         short_name: 'Vibe',
@@ -43,5 +46,19 @@ export default defineConfig({
   ],
   server: {
     host: true,
+    allowedHosts: true,
+  },
+  esbuild: {
+    drop: process.env.NODE_ENV === 'production' ? ['console', 'debugger'] : [],
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'react-router-dom', 'zustand', 'framer-motion', 'lucide-react'],
+          socket: ['socket.io-client', 'simple-peer'],
+        },
+      },
+    },
   },
 })

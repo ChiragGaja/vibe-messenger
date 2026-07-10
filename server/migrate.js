@@ -11,6 +11,7 @@ async function migrate() {
         await pool.query('ALTER TABLE messages ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT false');
         await pool.query('ALTER TABLE messages ADD COLUMN IF NOT EXISTS is_forwarded BOOLEAN DEFAULT false');
         await pool.query("ALTER TABLE messages ADD COLUMN IF NOT EXISTS original_sender VARCHAR(50)");
+        await pool.query("ALTER TABLE messages ADD COLUMN IF NOT EXISTS is_hd BOOLEAN DEFAULT false");
 
         // Add new columns to users table
         await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS display_name VARCHAR(100)");

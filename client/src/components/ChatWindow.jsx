@@ -14,7 +14,7 @@ import useCallStore from '../store/callStore';
 export default function ChatWindow({ onBack, onToggleSidebar, sidebarOpen }) {
     const {
         activeChat, messages, setMessages, prependMessages, hasMoreMessages,
-        typingUser, onlineUsers, user,
+        typingUser, onlineUsers, user, pendingMessages
     } = useChatStore();
 
     const messagesEndRef = useRef(null);
@@ -23,7 +23,7 @@ export default function ChatWindow({ onBack, onToggleSidebar, sidebarOpen }) {
     const [loadingMore, setLoadingMore] = useState(false);
     const [showGroupInfo, setShowGroupInfo] = useState(false);
     const [showFriendProfile, setShowFriendProfile] = useState(false);
-    const [showFriendProfile, setShowFriendProfile] = useState(false);
+
 
     // Search State
     const [showSearch, setShowSearch] = useState(false);
@@ -316,16 +316,16 @@ export default function ChatWindow({ onBack, onToggleSidebar, sidebarOpen }) {
                     <div className="flex-1 flex items-center justify-center">
                         <div className="spinner border-primary-500/30 border-t-primary-500" />
                     </div>
-                ) : messages.length === 0 ? (
+                ) : messages.length === 0 && pendingMessages.length === 0 ? (
                     <div className="flex-1 flex flex-col items-center justify-center gap-3 text-text-muted">
                         <span className="text-4xl">👋</span>
                         <p className="text-sm font-medium">Send a message to {activeChat?.username}</p>
                     </div>
                 ) : (
                     <AnimatePresence initial={false}>
-                        {messages.map((msg) => (
+                        {[...messages, ...pendingMessages.filter(m => activeChat.is_group ? m.group_id === activeChat.id : m.recipientUsername === activeChat.username)].map((msg) => (
                             <MessageBubble
-                                key={msg.id}
+                                key={msg.id || msg.tempId}
                                 message={msg}
                                 isOwn={msg.sender_username === user?.username}
                             />

@@ -22,7 +22,7 @@ export default function Dashboard() {
     const [viewerData, setViewerData] = useState(null); // { statuses: [], initialIndex: 0 }
     const navigate = useNavigate();
     const {
-        user, token, setFriends, setGroups, setFriendRequests, setConnected,
+        user, setFriends, setGroups, setFriendRequests, setConnected,
         setUserOnline, setUserOffline, addMessage, updateMessageStatus,
         setTypingUser, addFriendRequest, activeChat, isConnected,
         editMessage, deleteMessage, updateReactions, setActiveChat, setChatTheme
@@ -31,8 +31,8 @@ export default function Dashboard() {
     const { setIncomingCall, setCallStatus, endCall, peerInstance } = useCallStore();
 
     useEffect(() => {
-        if (!token) navigate('/login');
-    }, [token, navigate]);
+        if (!user) navigate('/login');
+    }, [user, navigate]);
 
     // Auto-hide sidebar on mobile when a chat is selected
     useEffect(() => {
@@ -58,12 +58,43 @@ export default function Dashboard() {
     }, [setFriends, setFriendRequests, setGroups]);
 
     useEffect(() => {
-        if (token) loadData();
-    }, [token, loadData]);
+        if (user) loadData();
+    }, [user, loadData]);
 
     useEffect(() => {
-        if (!token) return;
-        const socket = connectSocket(token);
+        if (!user) return;
+        if ('serviceWorker' in navigator && 'PushManager' in window) {
+            navigator.serviceWorker.ready.then(async (registration) => {
+                const permission = await Notification.requestPermission();
+                if (permission === 'granted') {
+                    let subscription = await registration.pushManager.getSubscription();
+                    if (!subscription) {
+                        const publicVapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+                        if (!publicVapidKey) return;
+                        const urlBase64ToUint8Array = (base64String) => {
+                            const padding = '='.repeat((4 - base64String.length % 4) % 4);
+                            const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+                            const rawData = window.atob(base64);
+                            const outputArray = new Uint8Array(rawData.length);
+                            for (let i = 0; i < rawData.length; ++i) {
+                                outputArray[i] = rawData.charCodeAt(i);
+                            }
+                            return outputArray;
+                        };
+                        subscription = await registration.pushManager.subscribe({
+                            userVisibleOnly: true,
+                            applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
+                        });
+                        await api.post('/push/subscribe', subscription);
+                    }
+                }
+            }).catch(console.error);
+        }
+    }, [user]);
+
+    useEffect(() => {
+        if (!user) return;
+        const socket = connectSocket();
 
         socket.on('connect', () => setConnected(true));
         socket.on('disconnect', () => setConnected(false));
@@ -151,7 +182,7 @@ export default function Dashboard() {
         if (Notification.permission === 'default') Notification.requestPermission();
 
         return () => { disconnectSocket(); setConnected(false); };
-    }, [token]);
+    }, [user]);
 
     // Mobile back handler: show sidebar, clear active chat
     const handleMobileBack = () => {
@@ -159,7 +190,7 @@ export default function Dashboard() {
         setActiveChat(null);
     };
 
-    if (!token) return null;
+    if (!user) return null;
 
     return (
         <div className="flex h-dvh overflow-hidden bg-background relative" style={{ height: '100dvh' }}>

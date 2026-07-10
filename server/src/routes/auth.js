@@ -220,16 +220,41 @@ router.post(
                 [user.id]
             );
 
-            // Generate JWT
-            const token = jwt.sign(
+            // Generate JWTs
+            const accessToken = jwt.sign(
+                { userId: user.id, username: user.username },
+                process.env.JWT_SECRET,
+                { expiresIn: '15m' }
+            );
+
+            const refreshToken = jwt.sign(
                 { userId: user.id, username: user.username },
                 process.env.JWT_SECRET,
                 { expiresIn: '7d' }
             );
 
+            // Store refresh token
+            await pool.query(
+                'INSERT INTO refresh_tokens (user_id, token, expires_at) VALUES ($1, $2, NOW() + INTERVAL \'7 days\')',
+                [user.id, refreshToken]
+            );
+
+            res.cookie('accessToken', accessToken, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'strict',
+                maxAge: 15 * 60 * 1000 // 15 mins
+            });
+
+            res.cookie('refreshToken', refreshToken, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'strict',
+                maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+            });
+
             res.json({
                 message: 'Login successful.',
-                token,
                 user: {
                     id: user.id,
                     username: user.username,
@@ -509,6 +534,54 @@ router.delete('/account', auth, async (req, res) => {
     } catch (error) {
         console.error('Delete account error:', error);
         res.status(500).json({ error: 'Internal server error.' });
+    }
+});
+
+// ─── REFRESH TOKEN ────────────────────────────────────────
+router.post('/refresh', async (req, res) => {
+    try {
+        const { refreshToken } = req.cookies;
+        if (!refreshToken) return res.status(401).json({ error: 'No refresh token provided.' });
+
+        const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
+        
+        // Verify in DB
+        const result = await pool.query('SELECT 1 FROM refresh_tokens WHERE token = $1 AND user_id = $2', [refreshToken, decoded.userId]);
+        if (result.rows.length === 0) return res.status(401).json({ error: 'Invalid refresh token.' });
+
+        // Issue new access token
+        const accessToken = jwt.sign(
+            { userId: decoded.userId, username: decoded.username },
+            process.env.JWT_SECRET,
+            { expiresIn: '15m' }
+        );
+
+        res.cookie('accessToken', accessToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 15 * 60 * 1000
+        });
+
+        res.json({ message: 'Token refreshed.' });
+    } catch (err) {
+        return res.status(401).json({ error: 'Invalid or expired refresh token.' });
+    }
+});
+
+// ─── LOGOUT ─────────────────────────────────────────────
+router.post('/logout', async (req, res) => {
+    try {
+        const { refreshToken } = req.cookies;
+        if (refreshToken) {
+            await pool.query('DELETE FROM refresh_tokens WHERE token = $1', [refreshToken]);
+        }
+        res.clearCookie('accessToken');
+        res.clearCookie('refreshToken');
+        res.json({ message: 'Logged out successfully.' });
+    } catch (err) {
+        console.error('Logout error:', err);
+        res.status(500).json({ error: 'Logout failed.' });
     }
 });
 

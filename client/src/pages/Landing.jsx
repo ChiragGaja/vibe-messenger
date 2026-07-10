@@ -25,7 +25,7 @@ const stagger = {
 
 export default function Landing() {
     const navigate = useNavigate();
-    const token = useChatStore((s) => s.token);
+    const user = useChatStore((s) => s.user);
     const [scrolled, setScrolled] = useState(false);
 
     useEffect(() => {
@@ -69,10 +69,10 @@ export default function Landing() {
                     <div className="flex items-center gap-4">
                         <Link to="/login" className="text-sm font-medium hover:text-zinc-500 transition-colors hidden sm:block text-zinc-600">Log in</Link>
                         <button 
-                            onClick={() => navigate(token ? '/chat' : '/register')}
+                            onClick={() => navigate(user ? '/chat' : '/register')}
                             className="bg-zinc-950 text-white px-5 py-2 rounded-full text-sm font-medium hover:bg-zinc-800 transition-all shadow-lg active:scale-95"
                         >
-                            {token ? 'Open Chat' : 'Get Started'}
+                            {user ? 'Open Chat' : 'Get Started'}
                         </button>
                     </div>
                 </div>

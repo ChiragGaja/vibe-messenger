@@ -1,6 +1,14 @@
 const jwt = require('jsonwebtoken');
 const pool = require('../config/db');
+const { encrypt, decrypt } = require('../utils/encryption');
 const { extractUrls, scrapeMetadata } = require('../utils/scraper');
+const webpush = require('web-push');
+
+webpush.setVapidDetails(
+    'mailto:test@example.com',
+    process.env.VAPID_PUBLIC_KEY,
+    process.env.VAPID_PRIVATE_KEY
+);
 
 // Track online users: Map<userId, Set<socketId>>
 const onlineUsers = new Map();
@@ -9,13 +17,19 @@ const setupSocket = (io) => {
     // ─── AUTH MIDDLEWARE ─────────────────────────────────────
     io.use((socket, next) => {
         try {
-            const token = socket.handshake.auth.token;
-            if (!token) return next(new Error('Authentication required.'));
+            const cookieStr = socket.handshake.headers.cookie;
+            console.log("Socket Auth Cookie:", cookieStr);
+            if (!cookieStr) return next(new Error('Authentication required (No cookies).'));
+            const tokenMatch = cookieStr.match(/accessToken=([^;]+)/);
+            const token = tokenMatch ? tokenMatch[1] : null;
+            if (!token) return next(new Error('Authentication required (No token in cookies).'));
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
             socket.userId = decoded.userId;
             socket.username = decoded.username;
+            console.log(`Socket Auth Success for user: ${socket.username}`);
             next();
         } catch (err) {
+            console.error("Socket Auth Error:", err.message);
             next(new Error('Invalid token.'));
         }
     });
@@ -38,7 +52,7 @@ const setupSocket = (io) => {
         // ─── SEND MESSAGE ─────────────────────────────────────
         socket.on('send_message', async (data, callback) => {
             try {
-                const { recipientUsername, groupId, content, messageType = 'text', fileUrl, fileName, fileSize, fileUrls, fileNames, fileSizes, replyToId } = data;
+                const { recipientUsername, groupId, content, messageType = 'text', fileUrl, fileName, fileSize, fileUrls, fileNames, fileSizes, replyToId, isHD = false } = data;
 
                 let recipientId = null;
                 if (recipientUsername) {
@@ -70,12 +84,13 @@ const setupSocket = (io) => {
                 }
 
                 const status = groupId ? 'sent' : (onlineUsers.has(recipientId) ? 'delivered' : 'sent');
+                const encryptedContent = content ? encrypt(content) : null;
                 const msgResult = await pool.query(
-                    `INSERT INTO messages (sender_id, recipient_id, group_id, content, message_type, file_url, file_name, file_size, file_urls, file_names, file_sizes, status, reply_to_id, link_title, link_description, link_image, link_url)
-                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
-                     RETURNING id, content, message_type, file_url, file_name, file_size, file_urls, file_names, file_sizes, status, created_at, reply_to_id, link_title, link_description, link_image, link_url`,
-                    [userId, recipientId, groupId || null, content || null, messageType, fileUrl || null, fileName || null, fileSize || null, urls, names, sizes,
-                        status, replyToId || null, linkTitle, linkDescription, linkImage, linkUrl]
+                    `INSERT INTO messages (sender_id, recipient_id, group_id, content, message_type, file_url, file_name, file_size, file_urls, file_names, file_sizes, status, reply_to_id, link_title, link_description, link_image, link_url, is_hd)
+                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+                     RETURNING id, content, message_type, file_url, file_name, file_size, file_urls, file_names, file_sizes, status, created_at, reply_to_id, link_title, link_description, link_image, link_url, is_hd`,
+                    [userId, recipientId, groupId || null, encryptedContent, messageType, fileUrl || null, fileName || null, fileSize || null, urls, names, sizes,
+                        status, replyToId || null, linkTitle, linkDescription, linkImage, linkUrl, isHD]
                 );
 
                 // Fetch reply context if exists
@@ -85,14 +100,16 @@ const setupSocket = (io) => {
                         `SELECT m.id, m.content, m.message_type, u.username AS sender_username
                          FROM messages m JOIN users u ON u.id = m.sender_id WHERE m.id = $1`, [replyToId]
                     );
-                    if (replyResult.rows.length > 0) replyTo = replyResult.rows[0];
+                    if (replyResult.rows.length > 0) {
+                        replyTo = { ...replyResult.rows[0], content: decrypt(replyResult.rows[0].content) };
+                    }
                 }
 
                 const message = {
                     id: msgResult.rows[0].id,
                     senderUsername: username,
                     recipientUsername,
-                    content: msgResult.rows[0].content,
+                    content: decrypt(msgResult.rows[0].content),
                     messageType: msgResult.rows[0].message_type,
                     fileUrl: msgResult.rows[0].file_url,
                     fileName: msgResult.rows[0].file_name,
@@ -106,14 +123,44 @@ const setupSocket = (io) => {
                     linkUrl: msgResult.rows[0].link_url,
                     status: msgResult.rows[0].status,
                     createdAt: msgResult.rows[0].created_at,
+                    isHD: msgResult.rows[0].is_hd,
                     replyTo,
                     reactions: [],
                 };
 
                 if (groupId) {
                     socket.to(`group_${groupId}`).emit('new_message', message);
+                    // For groups, we could query all members and check online status, but let's stick to DMs for push first to avoid spam.
                 } else {
                     io.to(`user:${recipientId}`).emit('new_message', message);
+
+                    // Send Push Notification if recipient is offline
+                    if (!onlineUsers.has(recipientId)) {
+                        try {
+                            const pushResult = await pool.query('SELECT endpoint, p256dh, auth FROM push_subscriptions WHERE user_id = $1', [recipientId]);
+                            const payload = JSON.stringify({
+                                title: `New message from ${username}`,
+                                body: message.messageType === 'text' ? message.content : `Sent you a ${message.messageType}`,
+                                icon: '/vibe-icon.png',
+                                url: `/chat`
+                            });
+
+                            for (let sub of pushResult.rows) {
+                                const pushSubscription = {
+                                    endpoint: sub.endpoint,
+                                    keys: { p256dh: sub.p256dh, auth: sub.auth }
+                                };
+                                await webpush.sendNotification(pushSubscription, payload).catch(async (err) => {
+                                    if (err.statusCode === 404 || err.statusCode === 410) {
+                                        // Subscription has expired or is no longer valid
+                                        await pool.query('DELETE FROM push_subscriptions WHERE endpoint = $1', [sub.endpoint]);
+                                    }
+                                });
+                            }
+                        } catch (err) {
+                            console.error('Push notification failed:', err);
+                        }
+                    }
                 }
                 callback?.({ success: true, message });
             } catch (error) {
@@ -126,11 +173,12 @@ const setupSocket = (io) => {
         socket.on('edit_message', async (data, callback) => {
             try {
                 const { messageId, newContent } = data;
+                const encryptedContent = encrypt(newContent);
                 const result = await pool.query(
                     `UPDATE messages SET content = $1, is_edited = true
                      WHERE id = $2 AND sender_id = $3 AND is_deleted = false
                      RETURNING id, content, is_edited`,
-                    [newContent, messageId, userId]
+                    [encryptedContent, messageId, userId]
                 );
 
                 if (result.rows.length === 0) return callback?.({ error: 'Message not found or unauthorized.' });
@@ -238,6 +286,7 @@ const setupSocket = (io) => {
 
                 if (origMsg.rows.length === 0) return callback?.({ error: 'Message not found.' });
                 const orig = origMsg.rows[0];
+                const decryptedOrigContent = decrypt(orig.content);
 
                 const results = [];
                 for (const recipientUsername of recipientUsernames) {
@@ -249,7 +298,7 @@ const setupSocket = (io) => {
                         `INSERT INTO messages (sender_id, recipient_id, content, message_type, file_url, file_name, file_size, status, is_forwarded, original_sender)
                          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true, $9)
                          RETURNING id, content, message_type, file_url, file_name, file_size, status, created_at, is_forwarded, original_sender`,
-                        [userId, recipientId, comment || orig.content, orig.message_type, orig.file_url, orig.file_name, orig.file_size,
+                        [userId, recipientId, encrypt(comment || decryptedOrigContent), orig.message_type, orig.file_url, orig.file_name, orig.file_size,
                             onlineUsers.has(recipientId) ? 'delivered' : 'sent', orig.original_sender]
                     );
 
@@ -257,7 +306,7 @@ const setupSocket = (io) => {
                         id: fwdResult.rows[0].id,
                         senderUsername: username,
                         recipientUsername,
-                        content: fwdResult.rows[0].content,
+                        content: decrypt(fwdResult.rows[0].content),
                         messageType: fwdResult.rows[0].message_type,
                         fileUrl: fwdResult.rows[0].file_url,
                         fileName: fwdResult.rows[0].file_name,
@@ -314,7 +363,12 @@ const setupSocket = (io) => {
 
         socket.on('friend_request_responded', async (data) => {
             const r = await pool.query('SELECT id FROM users WHERE username = $1', [data.senderUsername]);
-            if (r.rows.length > 0) io.to(`user:${r.rows[0].id}`).emit('friend_request_accepted', { friendUsername: username, action: data.action });
+            if (r.rows.length > 0) {
+                // Emit to the person who originally sent the request
+                io.to(`user:${r.rows[0].id}`).emit('friend_request_accepted', { friendUsername: username, action: data.action });
+            }
+            // Emit to the person who just accepted the request so their client reloads the friends list
+            socket.emit('friend_request_accepted', { friendUsername: data.senderUsername, action: data.action });
         });
 
         // ─── WEBRTC CALLING ───────────────────────────────────

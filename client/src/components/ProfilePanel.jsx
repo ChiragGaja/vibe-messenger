@@ -7,7 +7,7 @@ import api from '../api/axios';
 import useChatStore from '../store/chatStore';
 
 export default function ProfilePanel({ onClose }) {
-    const { user, setAuth, token } = useChatStore();
+    const { user, setAuth } = useChatStore();
     const [loading, setLoading] = useState(false);
     const [profile, setProfile] = useState({
         displayName: user?.displayName || user?.username || '',
@@ -36,7 +36,7 @@ export default function ProfilePanel({ onClose }) {
                 });
                 setAvatarPreview(dbUser.avatar_url);
                 // Update store with fresh data silently
-                setAuth({ ...user, ...dbUser, avatarUrl: dbUser.avatar_url, displayName: dbUser.display_name }, token);
+                setAuth({ ...user, ...dbUser, avatarUrl: dbUser.avatar_url, displayName: dbUser.display_name });
             } catch (err) {
                 console.error('Failed to fetch profile:', err);
             }
@@ -102,7 +102,7 @@ export default function ProfilePanel({ onClose }) {
                 avatarUrl: updatedUser.avatar_url,
                 displayName: updatedUser.display_name,
                 bio: updatedUser.bio,
-            }, token);
+            });
 
             setFeedback({ type: 'success', text: 'Profile updated successfully!' });
             setTimeout(() => setFeedback(null), 3000);

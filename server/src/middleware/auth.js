@@ -2,13 +2,16 @@ const jwt = require('jsonwebtoken');
 
 const auth = (req, res, next) => {
     try {
-        const authHeader = req.headers.authorization;
-
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            return res.status(401).json({ error: 'Access denied. No token provided.' });
+        let token = req.cookies.accessToken;
+        
+        // Fallback to header if cookie is not present (useful for mobile apps or specific clients)
+        if (!token && req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+            token = req.headers.authorization.split(' ')[1];
         }
 
-        const token = authHeader.split(' ')[1];
+        if (!token) {
+            return res.status(401).json({ error: 'Access denied. No token provided.' });
+        }
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
         req.userId = decoded.userId;

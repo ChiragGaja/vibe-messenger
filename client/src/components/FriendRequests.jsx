@@ -18,7 +18,7 @@ export default function FriendRequests({ onDataRefresh }) {
             if (socket && action === 'accept') {
                 socket.emit('friend_request_responded', { senderUsername, action });
             }
-            if (action === 'accept') onDataRefresh();
+            if (action === 'accept' && typeof onDataRefresh === 'function') onDataRefresh();
         } catch (err) {
             console.error('Failed to handle friend request:', err);
         } finally {

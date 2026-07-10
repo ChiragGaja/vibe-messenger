@@ -59,6 +59,20 @@ async function migrate() {
         await pool.query(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS group_id INT REFERENCES groups(id) ON DELETE CASCADE;`);
         await pool.query(`CREATE INDEX IF NOT EXISTS idx_messages_group ON messages(group_id);`);
 
+        // Phase 8: Web Push Subscriptions
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS push_subscriptions (
+                id SERIAL PRIMARY KEY,
+                user_id INT REFERENCES users(id) ON DELETE CASCADE,
+                endpoint TEXT UNIQUE NOT NULL,
+                p256dh TEXT NOT NULL,
+                auth TEXT NOT NULL,
+                created_at TIMESTAMPTZ DEFAULT NOW(),
+                last_used TIMESTAMPTZ DEFAULT NOW()
+            );
+        `);
+        await pool.query(`CREATE INDEX IF NOT EXISTS idx_push_subs_user ON push_subscriptions(user_id);`);
+
         console.log('Migration successful');
     } catch (e) {
         console.error('Migration failed:', e);

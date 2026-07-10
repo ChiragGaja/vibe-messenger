@@ -6,6 +6,7 @@ import { getSocket } from '../socket/socket';
 import api from '../api/axios';
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
+import MediaEditor from './MediaEditor';
 
 // ─── Image Compression Helper ────────────────────────────
 const compressImage = (file, maxWidth = 1280, quality = 0.8) => {
@@ -58,6 +59,8 @@ export default function MessageInput() {
     const [filePreviews, setFilePreviews] = useState([]);
     const [uploading, setUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
+    const [isHD, setIsHD] = useState(false);
+    const [pendingFiles, setPendingFiles] = useState(null); // Files awaiting editor
 
     // Audio Recording State
     const [isRecording, setIsRecording] = useState(false);
@@ -172,13 +175,15 @@ export default function MessageInput() {
     // ────────────────────────────────────────────────────────
 
     const handleFileSelect = async (e) => {
-        const selectedFiles = Array.from(e.target.files);
-        if (selectedFiles.length === 0) return;
+        const selected = Array.from(e.target.files);
+        if (selected.length === 0) return;
+        setPendingFiles(selected);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+    };
 
-        // Compress images before adding
-        const processedFiles = await Promise.all(
-            selectedFiles.map((f) => compressImage(f))
-        );
+    const handleEditorComplete = async (processedFiles, hdStatus) => {
+        setIsHD(hdStatus);
+        setPendingFiles(null);
 
         // Append new files to existing ones (max 10)
         const combinedFiles = [...files, ...processedFiles].slice(0, 10);
@@ -260,6 +265,30 @@ export default function MessageInput() {
         const replyToId = replyTo?.id || null;
         clearReplyTo();
 
+        if (!navigator.onLine) {
+            if (files.length > 0) {
+                alert("Cannot send files while offline.");
+                return;
+            }
+            
+            const user = useChatStore.getState().user;
+            const pendingMsg = {
+                tempId: 'pending_' + Date.now().toString(),
+                sender_username: user.username,
+                sender_id: user.id,
+                group_id: activeChat.is_group ? activeChat.id : null,
+                recipientUsername: activeChat.is_group ? null : activeChat.username, // custom field for later sync
+                content: text.trim(),
+                message_type: 'text',
+                created_at: new Date().toISOString(),
+                status: 'pending', // Special status
+                reply_to_id: replyToId,
+            };
+            useChatStore.getState().addPendingMessage(pendingMsg);
+            setText('');
+            return;
+        }
+
         if (files.length > 0) {
             setUploading(true);
             setUploadProgress(0);
@@ -282,6 +311,7 @@ export default function MessageInput() {
                     fileNames: uploadData.fileNames,
                     fileSizes: uploadData.fileSizes,
                     replyToId,
+                    isHD,
                 }, (res) => { if (res?.success) addMessage(res.message); });
 
                 setFiles([]);
@@ -539,6 +569,16 @@ export default function MessageInput() {
                     </motion.button>
                 )}
             </div>
+
+            <AnimatePresence>
+                {pendingFiles && (
+                    <MediaEditor
+                        initialFiles={pendingFiles}
+                        onComplete={handleEditorComplete}
+                        onCancel={() => setPendingFiles(null)}
+                    />
+                )}
+            </AnimatePresence>
         </div>
     );
 }

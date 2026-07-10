@@ -1,8 +1,8 @@
 import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, CheckCheck, FileText, Download, Reply, Forward, Pencil, Trash2, SmilePlus, X, CornerUpRight, Play, Star } from 'lucide-react';
+import { Check, CheckCheck, FileText, Download, Reply, Forward, Pencil, Trash2, SmilePlus, X, CornerUpRight, Play, Star, Clock } from 'lucide-react';
 import useChatStore from '../store/chatStore';
-import axios from 'axios';
+import api from '../api/axios';
 import { getSocket } from '../socket/socket';
 import AudioPlayer from './AudioPlayer';
 
@@ -16,7 +16,7 @@ export default function MessageBubble({ message, isOwn }) {
     const [editText, setEditText] = useState('');
     const [isStarred, setIsStarred] = useState(message.isStarred || false);
     const [swipeX, setSwipeX] = useState(0);
-    const { setReplyTo, user, token, activeChat } = useChatStore();
+    const { setReplyTo, user, activeChat } = useChatStore();
 
     const formatTime = (ts) => new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const formatSize = (bytes) => {
@@ -45,6 +45,7 @@ export default function MessageBubble({ message, isOwn }) {
             </svg>
         );
 
+        if (status === 'pending') return <Clock size={12} className="text-orange-400 ml-0.5" />;
         if (status === 'read') return <DoubleTick className="text-[#53bdeb] ml-0.5" />;
         if (status === 'delivered') return <DoubleTick className="text-text-muted/80 ml-0.5" />;
         return <Tick className="text-text-muted/80 ml-0.5" />;
@@ -139,9 +140,7 @@ export default function MessageBubble({ message, isOwn }) {
 
     const handleStar = async () => {
         try {
-            const res = await axios.post(`http://${window.location.hostname}:5000/api/messages/${message.id}/star`, {}, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const res = await api.post(`/messages/${message.id}/star`);
             setIsStarred(res.data.isStarred);
         } catch (error) {
             console.error('Error toggling star:', error);
@@ -358,6 +357,7 @@ export default function MessageBubble({ message, isOwn }) {
                         {renderContent()}
 
                         <div className={`flex items-center gap-1.5 mt-1 text-[10px] ${isOwn ? 'justify-end opacity-70' : 'opacity-50'}`}>
+                            {message.isHD && <span className="font-bold text-emerald-400">HD</span>}
                             {isStarred && <Star size={10} className={`${isOwn ? 'text-yellow-300' : 'text-yellow-500'} fill-current`} />}
                             {isEdited && <span className="italic">edited</span>}
                             <span>{formatTime(message.createdAt || message.created_at)}</span>

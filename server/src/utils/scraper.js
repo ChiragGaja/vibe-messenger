@@ -3,7 +3,6 @@ const metascraper = require('metascraper')([
     require('metascraper-description')(),
     require('metascraper-image')()
 ]);
-const got = require('got');
 
 /**
  * Extracts all URLs from a given text string.
@@ -27,7 +26,37 @@ async function scrapeMetadata(targetUrl) {
     if (!targetUrl) return null;
 
     try {
+        const dns = require('dns');
+        const ipaddr = require('ipaddr.js');
+
+        const customLookup = (hostname, options, callback) => {
+            dns.lookup(hostname, options, (err, address, family) => {
+                if (err) return callback(err);
+
+                try {
+                    const addr = ipaddr.parse(address);
+                    const range = addr.range();
+                    
+                    // Block all non-unicast or private IP ranges
+                    const blockedRanges = [
+                        'unspecified', 'broadcast', 'multicast', 'linkLocal', 'loopback', 
+                        'carrierGradeNat', 'private', 'reserved'
+                    ];
+
+                    if (blockedRanges.includes(range) || address === '127.0.0.1' || address === '::1') {
+                        return callback(new Error(`SSRF Prevention: Access to private/internal IP range (${range}) is forbidden.`));
+                    }
+                } catch (e) {
+                    return callback(new Error('SSRF Prevention: Invalid IP address resolved.'));
+                }
+
+                callback(null, address, family);
+            });
+        };
+
+        const got = (await import('got')).default;
         const { body: html, url } = await got(targetUrl, {
+            dnsLookup: customLookup,
             timeout: { request: 3000 },
             retry: { limit: 1 },
             headers: {

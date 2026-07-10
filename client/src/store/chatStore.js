@@ -1,18 +1,43 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import { get, set as setIDB, del } from 'idb-keyval';
 
-const useChatStore = create((set, get) => ({
+const idbStorage = {
+  getItem: async (name) => {
+    return (await get(name)) || null;
+  },
+  setItem: async (name, value) => {
+    await setIDB(name, value);
+  },
+  removeItem: async (name) => {
+    await del(name);
+  },
+};
+
+const useChatStore = create(
+    persist(
+        (set, get) => ({
     // ─── Auth ─────────────────────────────────────────────
-    user: JSON.parse(localStorage.getItem('user')) || null,
-    token: localStorage.getItem('token') || null,
-    setAuth: (user, token) => {
+    user: (() => {
+        try {
+            const stored = localStorage.getItem('user');
+            return stored && stored !== 'undefined' ? JSON.parse(stored) : null;
+        } catch (e) {
+            return null;
+        }
+    })(),
+    setAuth: (user) => {
         localStorage.setItem('user', JSON.stringify(user));
-        localStorage.setItem('token', token);
-        set({ user, token });
+        set({ user });
     },
-    logout: () => {
+    logout: async () => {
+        try {
+            await import('../api/axios').then(module => module.default.post('/auth/logout'));
+        } catch (e) {
+            console.error('Logout error', e);
+        }
         localStorage.removeItem('user');
-        localStorage.removeItem('token');
-        set({ user: null, token: null, friends: [], groups: [], friendRequests: [], messages: [], activeChat: null });
+        set({ user: null, friends: [], groups: [], friendRequests: [], messages: [], activeChat: null });
     },
 
     // ─── Friends & Groups ──────────────────────────────────────────
@@ -54,6 +79,13 @@ const useChatStore = create((set, get) => ({
         
         return { friends: friendsList, groups: groupsList, activeChat: active };
     }),
+
+    // ─── Pending Messages (Outbox) ────────────────────────
+    pendingMessages: [],
+    addPendingMessage: (msg) => set((s) => ({ pendingMessages: [...s.pendingMessages, msg] })),
+    removePendingMessage: (tempId) => set((s) => ({ pendingMessages: s.pendingMessages.filter(m => m.tempId !== tempId) })),
+    clearPendingMessages: () => set({ pendingMessages: [] }),
+
 
     // ─── Messages ─────────────────────────────────────────
     messages: [],
@@ -126,6 +158,19 @@ const useChatStore = create((set, get) => ({
     // ─── Connection ───────────────────────────────────────
     isConnected: false,
     setConnected: (isConnected) => set({ isConnected }),
-}));
+        }),
+        {
+            name: 'vibe-chat-storage',
+            storage: createJSONStorage(() => idbStorage),
+            partialize: (state) => ({
+                friends: state.friends,
+                groups: state.groups,
+                friendRequests: state.friendRequests,
+                messages: state.messages,
+                pendingMessages: state.pendingMessages,
+            }),
+        }
+    )
+);
 
 export default useChatStore;

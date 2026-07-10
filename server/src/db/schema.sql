@@ -64,6 +64,7 @@ CREATE TABLE IF NOT EXISTS messages (
   is_deleted BOOLEAN DEFAULT false,
   is_forwarded BOOLEAN DEFAULT false,
   original_sender VARCHAR(50),
+  is_hd BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -135,3 +136,14 @@ CREATE TABLE IF NOT EXISTS statuses (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_statuses_user_expires ON statuses(user_id, expires_at);
+
+-- Refresh Tokens
+CREATE TABLE IF NOT EXISTS refresh_tokens (
+  id SERIAL PRIMARY KEY,
+  user_id INT REFERENCES users(id) ON DELETE CASCADE,
+  token VARCHAR(500) NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, token)
+);
+CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user ON refresh_tokens(user_id);

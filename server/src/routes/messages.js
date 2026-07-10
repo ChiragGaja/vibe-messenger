@@ -2,8 +2,8 @@ const express = require('express');
 const pool = require('../config/db');
 const auth = require('../middleware/auth');
 const upload = require('../middleware/upload');
-
 const router = express.Router();
+const { decrypt } = require('../utils/encryption');
 router.use(auth);
 
 // ─── UPLOAD FILE ────────────────────────────────────────
@@ -58,7 +58,7 @@ router.get('/starred/list', async (req, res) => {
         const query = `
             SELECT m.id, m.content, m.message_type, m.file_url, m.file_name, m.file_size, m.file_urls, m.file_names, m.file_sizes,
                    m.link_title, m.link_description, m.link_image, m.link_url,
-                   m.status, m.created_at, m.reply_to_id, m.is_edited, m.is_deleted, m.is_forwarded, m.original_sender,
+                   m.status, m.created_at, m.reply_to_id, m.is_edited, m.is_deleted, m.is_forwarded, m.original_sender, m.is_hd,
                    sender.username AS sender_username,
                    recipient.username AS recipient_username,
                    s.created_at AS starred_at
@@ -71,7 +71,7 @@ router.get('/starred/list', async (req, res) => {
         `;
 
         const result = await pool.query(query, [userId]);
-        res.json(result.rows);
+        res.json(result.rows.map(m => ({ ...m, content: decrypt(m.content) || m.content })));
     } catch (error) {
         console.error('Get starred messages error:', error);
         res.status(500).json({ error: 'Internal server error.' });
@@ -94,8 +94,8 @@ router.get('/group/:groupId', async (req, res) => {
         const baseSelect = `
             SELECT m.id, m.content, m.message_type, m.file_url, m.file_name, m.file_size, m.file_urls, m.file_names, m.file_sizes,
                    m.link_title, m.link_description, m.link_image, m.link_url,
-                   m.status, m.created_at, m.reply_to_id, m.is_edited, m.is_deleted, m.is_forwarded, m.original_sender,
-                   m.group_id,
+                   m.status, m.created_at, m.reply_to_id, m.is_edited, m.is_deleted, m.is_forwarded, m.original_sender, m.is_hd,
+                   m.group_id, m.is_hd,
                    sender.username AS sender_username, sender.display_name AS sender_display_name, sender.avatar_url AS sender_avatar_url,
                    -- Reply context
                    reply.content AS reply_content,
@@ -143,10 +143,12 @@ router.get('/group/:groupId', async (req, res) => {
 
         const enrichedMessages = messages.map((m) => ({
             ...m,
+            content: decrypt(m.content) || m.content,
             linkTitle: m.link_title, linkDescription: m.link_description, linkImage: m.link_image, linkUrl: m.link_url,
             isStarred: starredSet.has(m.id),
+            isHD: m.is_hd,
             reactions: reactionsMap[m.id] ? Object.values(reactionsMap[m.id]) : [],
-            replyTo: m.reply_to_id ? { id: m.reply_to_id, content: m.reply_content, message_type: m.reply_message_type, sender_username: m.reply_sender_username } : null,
+            replyTo: m.reply_to_id ? { id: m.reply_to_id, content: decrypt(m.reply_content) || m.reply_content, message_type: m.reply_message_type, sender_username: m.reply_sender_username } : null,
         }));
 
         res.json({ messages: enrichedMessages, hasMore: result.rows.length === limit });
@@ -210,7 +212,7 @@ router.get('/search', async (req, res) => {
         }
 
         const result = await pool.query(query, params);
-        res.json({ results: result.rows });
+        res.json({ results: result.rows.map(r => ({ ...r, content: decrypt(r.content) || r.content })) });
     } catch (error) {
         console.error('Search messages error:', error);
         res.status(500).json({ error: 'Internal server error.' });
@@ -236,7 +238,7 @@ router.get('/:friendUsername', async (req, res) => {
         const baseSelect = `
             SELECT m.id, m.content, m.message_type, m.file_url, m.file_name, m.file_size, m.file_urls, m.file_names, m.file_sizes,
                    m.link_title, m.link_description, m.link_image, m.link_url,
-                   m.status, m.created_at, m.reply_to_id, m.is_edited, m.is_deleted, m.is_forwarded, m.original_sender,
+                   m.status, m.created_at, m.reply_to_id, m.is_edited, m.is_deleted, m.is_forwarded, m.original_sender, m.is_hd,
                    sender.username AS sender_username,
                    recipient.username AS recipient_username,
                    -- Reply context
@@ -294,15 +296,17 @@ router.get('/:friendUsername', async (req, res) => {
         // Enrich messages with reactions and reply context
         const enrichedMessages = messages.map((m) => ({
             ...m,
+            content: decrypt(m.content) || m.content,
             linkTitle: m.link_title,
             linkDescription: m.link_description,
             linkImage: m.link_image,
             linkUrl: m.link_url,
             isStarred: starredSet.has(m.id),
+            isHD: m.is_hd,
             reactions: reactionsMap[m.id] ? Object.values(reactionsMap[m.id]) : [],
             replyTo: m.reply_to_id ? {
                 id: m.reply_to_id,
-                content: m.reply_content,
+                content: decrypt(m.reply_content) || m.reply_content,
                 message_type: m.reply_message_type,
                 sender_username: m.reply_sender_username,
             } : null,
