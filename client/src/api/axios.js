@@ -9,9 +9,15 @@ const api = axios.create({
     withCredentials: true,
 });
 
-// We no longer need to attach a JWT manually since it is stored in an HttpOnly cookie
+// Inject Bearer token into every request
 api.interceptors.request.use(
-    (config) => config,
+    (config) => {
+        const token = localStorage.getItem('accessToken');
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+        return config;
+    },
     (error) => Promise.reject(error)
 );
 
@@ -43,7 +49,8 @@ api.interceptors.response.use(
             if (isRefreshing) {
                 return new Promise(function(resolve, reject) {
                     failedQueue.push({ resolve, reject });
-                }).then(() => {
+                }).then((newToken) => {
+                    originalRequest.headers.Authorization = `Bearer ${newToken}`;
                     return api(originalRequest);
                 }).catch((err) => {
                     return Promise.reject(err);
@@ -54,16 +61,29 @@ api.interceptors.response.use(
             isRefreshing = true;
 
             try {
-                // Attempt to refresh the token using the HttpOnly refresh token cookie
-                await axios.post(`${API_URL}/auth/refresh`, {}, { withCredentials: true });
+                const refreshToken = localStorage.getItem('refreshToken');
+                if (!refreshToken) throw new Error('No refresh token');
+
+                // Attempt to refresh the token
+                const res = await axios.post(`${API_URL}/auth/refresh`, { refreshToken });
+                const newAccessToken = res.data.accessToken;
+
+                // Save the new access token
+                localStorage.setItem('accessToken', newAccessToken);
+
                 isRefreshing = false;
-                processQueue(null);
+                processQueue(null, newAccessToken);
+
+                // Retry the original request with the new token
+                originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
                 return api(originalRequest);
             } catch (err) {
                 isRefreshing = false;
                 processQueue(err, null);
                 // Refresh token expired or invalid, log user out
                 localStorage.removeItem('user');
+                localStorage.removeItem('accessToken');
+                localStorage.removeItem('refreshToken');
                 window.location.href = '/login';
                 return Promise.reject(err);
             }

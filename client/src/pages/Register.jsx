@@ -104,7 +104,7 @@ export default function Register() {
                 setStep(2);
             } else {
                 const { data } = await api.post('/auth/verify-otp', { email, otp });
-                setAuth(data.user);
+                setAuth(data.user, data.token);
                 navigate('/');
             }
         } catch (err) {

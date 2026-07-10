@@ -77,7 +77,7 @@ export default function Login() {
         setLoading(true);
         try {
             const { data } = await api.post('/auth/login', { username: username.trim(), password });
-            setAuth(data.user);
+            setAuth(data.user, data.accessToken, data.refreshToken);
             localStorage.removeItem('lockedUntil');
             navigate('/');
         } catch (err) {

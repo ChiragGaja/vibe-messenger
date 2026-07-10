@@ -26,17 +26,22 @@ const useChatStore = create(
             return null;
         }
     })(),
-    setAuth: (user) => {
+    setAuth: (user, accessToken, refreshToken) => {
         localStorage.setItem('user', JSON.stringify(user));
+        if (accessToken) localStorage.setItem('accessToken', accessToken);
+        if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
         set({ user });
     },
     logout: async () => {
         try {
-            await import('../api/axios').then(module => module.default.post('/auth/logout'));
+            const refreshToken = localStorage.getItem('refreshToken');
+            await import('../api/axios').then(module => module.default.post('/auth/logout', { refreshToken }));
         } catch (e) {
             console.error('Logout error', e);
         }
         localStorage.removeItem('user');
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
         set({ user: null, friends: [], groups: [], friendRequests: [], messages: [], activeChat: null });
     },
 

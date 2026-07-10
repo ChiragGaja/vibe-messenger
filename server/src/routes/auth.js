@@ -239,22 +239,10 @@ router.post(
                 [user.id, refreshToken]
             );
 
-            res.cookie('accessToken', accessToken, {
-                httpOnly: true,
-                secure: true,
-                sameSite: 'none',
-                maxAge: 15 * 60 * 1000 // 15 mins
-            });
-
-            res.cookie('refreshToken', refreshToken, {
-                httpOnly: true,
-                secure: true,
-                sameSite: 'none',
-                maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-            });
-
             res.json({
                 message: 'Login successful.',
+                accessToken,
+                refreshToken,
                 user: {
                     id: user.id,
                     username: user.username,
@@ -540,7 +528,7 @@ router.delete('/account', auth, async (req, res) => {
 // ─── REFRESH TOKEN ────────────────────────────────────────
 router.post('/refresh', async (req, res) => {
     try {
-        const { refreshToken } = req.cookies;
+        const refreshToken = req.body.refreshToken || req.cookies?.refreshToken;
         if (!refreshToken) return res.status(401).json({ error: 'No refresh token provided.' });
 
         const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
@@ -556,14 +544,7 @@ router.post('/refresh', async (req, res) => {
             { expiresIn: '15m' }
         );
 
-        res.cookie('accessToken', accessToken, {
-            httpOnly: true,
-            secure: true,
-            sameSite: 'none',
-            maxAge: 15 * 60 * 1000
-        });
-
-        res.json({ message: 'Token refreshed.' });
+        res.json({ message: 'Token refreshed.', accessToken });
     } catch (err) {
         return res.status(401).json({ error: 'Invalid or expired refresh token.' });
     }
@@ -572,12 +553,10 @@ router.post('/refresh', async (req, res) => {
 // ─── LOGOUT ─────────────────────────────────────────────
 router.post('/logout', async (req, res) => {
     try {
-        const { refreshToken } = req.cookies;
+        const refreshToken = req.body.refreshToken || req.cookies?.refreshToken;
         if (refreshToken) {
             await pool.query('DELETE FROM refresh_tokens WHERE token = $1', [refreshToken]);
         }
-        res.clearCookie('accessToken');
-        res.clearCookie('refreshToken');
         res.json({ message: 'Logged out successfully.' });
     } catch (err) {
         console.error('Logout error:', err);

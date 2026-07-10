@@ -8,8 +8,11 @@ let socket = null;
 export const connectSocket = () => {
     if (socket && socket.connected) return socket;
 
+    const token = localStorage.getItem('accessToken');
+
     socket = io(SOCKET_URL, {
         withCredentials: true,
+        auth: { token },
         reconnection: true,
         reconnectionAttempts: 10,
         reconnectionDelay: 1000,

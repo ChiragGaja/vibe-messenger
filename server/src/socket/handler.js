@@ -17,16 +17,22 @@ const setupSocket = (io) => {
     // ─── AUTH MIDDLEWARE ─────────────────────────────────────
     io.use((socket, next) => {
         try {
-            const cookieStr = socket.handshake.headers.cookie;
-            console.log("Socket Auth Cookie:", cookieStr);
-            if (!cookieStr) return next(new Error('Authentication required (No cookies).'));
-            const tokenMatch = cookieStr.match(/accessToken=([^;]+)/);
-            const token = tokenMatch ? tokenMatch[1] : null;
-            if (!token) return next(new Error('Authentication required (No token in cookies).'));
+            // Priority 1: Bearer token from auth payload (mobile/PWA)
+            let token = socket.handshake.auth?.token;
+
+            // Priority 2: Fallback to cookie (legacy)
+            if (!token) {
+                const cookieStr = socket.handshake.headers.cookie;
+                if (cookieStr) {
+                    const tokenMatch = cookieStr.match(/accessToken=([^;]+)/);
+                    token = tokenMatch ? tokenMatch[1] : null;
+                }
+            }
+
+            if (!token) return next(new Error('Authentication required.'));
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
             socket.userId = decoded.userId;
             socket.username = decoded.username;
-            console.log(`Socket Auth Success for user: ${socket.username}`);
             next();
         } catch (err) {
             console.error("Socket Auth Error:", err.message);
