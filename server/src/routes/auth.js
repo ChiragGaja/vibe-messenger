@@ -105,14 +105,8 @@ router.post(
                 [username, passwordHash, email, otp, otpExpiresAt]
             );
 
-            // Send OTP email
-            const emailSent = await sendOTP(email, otp);
-            if (!emailSent) {
-                // If email fails, we shouldn't just leave a "dead" unverified user.
-                // However, the user is already in the DB. We could delete them or just tell them to resend.
-                // Choosing to return 500 for now to indicate a service failure.
-                throw new Error('Failed to send verification email. Please try again.');
-            }
+            // Send OTP email (fire and forget)
+            sendOTP(email, otp).catch(err => console.error('Failed to send OTP email in background:', err));
 
             res.status(201).json({
                 message: 'Registration successful. Please verify your email.',
@@ -333,7 +327,8 @@ router.post('/resend-otp', otpLimiter, async (req, res) => {
             return res.status(404).json({ error: 'User not found.' });
         }
 
-        await sendOTP(email, otp);
+        // Send OTP asynchronously
+        sendOTP(email, otp).catch(err => console.error('Failed to resend OTP in background:', err));
         res.json({ message: 'A new verification code has been sent to your email.' });
     } catch (error) {
         console.error('Resend OTP error:', error);

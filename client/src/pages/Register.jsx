@@ -108,11 +108,15 @@ export default function Register() {
                 navigate('/');
             }
         } catch (err) {
-            const errors = err.response?.data?.errors;
-            if (errors?.length) {
-                setError(errors.map((e) => e.msg).join(' '));
+            if (!err.response) {
+                setError('Network error. The server took too long to respond or is unreachable.');
             } else {
-                setError(err.response?.data?.error || (step === 1 ? 'Registration failed.' : 'Verification failed.'));
+                const errors = err.response?.data?.errors;
+                if (errors?.length) {
+                    setError(errors.map((e) => e.msg).join(' '));
+                } else {
+                    setError(err.response?.data?.error || (step === 1 ? 'Registration failed.' : 'Verification failed.'));
+                }
             }
         } finally {
             setLoading(false);
