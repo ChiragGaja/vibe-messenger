@@ -67,7 +67,7 @@
     border-radius: 12px;
     color: rgb(var(--text-rgb));
     font-family: inherit;
-    font-size: 15px;
+    font-size: 16px; /* 16px prevents iOS auto-zoom */
     outline: none;
     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   }
@@ -95,6 +95,7 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
+    touch-action: manipulation; /* Prevents 300ms delay on iOS */
     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   }
   .btn-primary:hover {

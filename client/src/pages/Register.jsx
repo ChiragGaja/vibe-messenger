@@ -183,8 +183,15 @@ export default function Register() {
                     </AnimatePresence>
 
                     <form onSubmit={handleSubmit}>
-                        {step === 1 ? (
-                            <>
+                        <AnimatePresence mode="wait">
+                            {step === 1 ? (
+                                <motion.div
+                                    key="step1"
+                                    initial={{ opacity: 0, x: -20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, x: -20 }}
+                                    transition={{ duration: 0.3 }}
+                                >
                                 {/* Username Field */}
                                 <motion.div variants={itemVariants} className="mb-4">
                                     <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">Username</label>
@@ -302,14 +309,24 @@ export default function Register() {
                                 </motion.div>
 
                                 <div className="mb-5" />
-                            </>
+                            </motion.div>
                         ) : (
                             /* OTP Step */
-                            <motion.div variants={itemVariants} className="mb-6">
+                            <motion.div 
+                                key="step2"
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: 20 }}
+                                transition={{ duration: 0.3 }}
+                                className="mb-6"
+                            >
                                 <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-2 text-center">Verification Code</label>
                                 <input
                                     id="reg-otp"
                                     type="text"
+                                    inputMode="numeric"
+                                    pattern="\d*"
+                                    autoComplete="one-time-code"
                                     maxLength={6}
                                     className="input-field text-center text-2xl tracking-[1em] font-bold"
                                     placeholder="000000"
@@ -330,6 +347,7 @@ export default function Register() {
                                 </div>
                             </motion.div>
                         )}
+                        </AnimatePresence>
 
                         <motion.div variants={itemVariants}>
                             <button
