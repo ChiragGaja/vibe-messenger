@@ -90,7 +90,7 @@ export default function MessageBubble({ message, isOwn }) {
     const linkUrl = message.linkUrl || message.link_url;
 
     // Build Slides for Lightbox
-    const mediaUrls = fileUrls.length > 0 ? fileUrls : [fileUrl].filter(Boolean);
+    const mediaUrls = fileUrls.length > 0 ? fileUrls : [fileUrl, linkTitle === 'Replying to Status' ? linkImage : null].filter(Boolean);
     const slides = mediaUrls.map(url => {
         if (!url) return null;
         if (url.match(/\.(mp4|webm|mov)$/i)) {
@@ -297,12 +297,17 @@ export default function MessageBubble({ message, isOwn }) {
                                     className="mt-1 flex flex-col sm:flex-row overflow-hidden rounded-xl border border-border bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors no-underline text-inherit max-w-[320px]"
                                 >
                                     {linkImage && (
-                                        <div className="w-full sm:w-24 h-32 sm:h-24 shrink-0 bg-surface-hover">
+                                        <div 
+                                            className="w-full sm:w-24 h-32 sm:h-24 shrink-0 bg-surface-hover cursor-pointer hover:opacity-90 transition-opacity"
+                                            onClick={(e) => { e.preventDefault(); setLightboxIndex(0); }}
+                                        >
                                             <img src={linkImage} alt={linkTitle} className="w-full h-full object-cover" loading="lazy" />
                                         </div>
                                     )}
                                     <div className="p-2.5 flex flex-col justify-center flex-1 min-w-0">
-                                        <div className="text-xs font-semibold truncate mb-0.5">{linkTitle}</div>
+                                        <div className="text-xs font-semibold truncate mb-0.5">
+                                            {linkTitle === 'Replying to Status' ? (isOwn ? 'Reply to status' : 'Replied to your status') : linkTitle}
+                                        </div>
                                         {linkDescription && (
                                             <div className="text-[10px] opacity-70 line-clamp-2 leading-snug break-words">
                                                 {linkDescription}
@@ -318,12 +323,17 @@ export default function MessageBubble({ message, isOwn }) {
                             ) : (
                                 <div className="mt-1 flex flex-col sm:flex-row overflow-hidden rounded-xl border border-border bg-black/5 dark:bg-white/5 text-inherit max-w-[320px]">
                                     {linkImage && (
-                                        <div className="w-full sm:w-24 h-32 sm:h-24 shrink-0 bg-surface-hover">
+                                        <div 
+                                            className="w-full sm:w-24 h-32 sm:h-24 shrink-0 bg-surface-hover cursor-pointer hover:opacity-90 transition-opacity"
+                                            onClick={(e) => { e.preventDefault(); setLightboxIndex(0); }}
+                                        >
                                             <img src={linkImage} alt={linkTitle} className="w-full h-full object-cover" loading="lazy" />
                                         </div>
                                     )}
                                     <div className="p-2.5 flex flex-col justify-center flex-1 min-w-0">
-                                        <div className="text-xs font-semibold truncate mb-0.5">{linkTitle}</div>
+                                        <div className="text-xs font-semibold truncate mb-0.5">
+                                            {linkTitle === 'Replying to Status' ? (isOwn ? 'Reply to status' : 'Replied to your status') : linkTitle}
+                                        </div>
                                         {linkDescription && (
                                             <div className="text-[10px] opacity-70 line-clamp-2 leading-snug break-words">
                                                 {linkDescription}

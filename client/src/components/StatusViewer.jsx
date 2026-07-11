@@ -10,12 +10,13 @@ export default function StatusViewer({ statuses, initialIndex = 0, onClose }) {
     const [progress, setProgress] = useState(0);
     const [showViews, setShowViews] = useState(false);
     const [replyText, setReplyText] = useState('');
+    const [isReplying, setIsReplying] = useState(false);
     const { user } = useChatStore();
     
     const videoRef = useRef(null);
     const reqRef = useRef(null);
     const startTimeRef = useRef(null);
-    const currentDurationRef = useRef(5000); // 5s for images
+    const currentDurationRef = useRef(20000); // 20s for images
 
     const currentStatus = statuses[currentIndex];
     const isMyStatus = currentStatus?.userId === user?.id;
@@ -62,7 +63,7 @@ export default function StatusViewer({ statuses, initialIndex = 0, onClose }) {
                 videoRef.current.play().catch(e => console.error("Video play error", e));
             }
         } else {
-            currentDurationRef.current = 5000;
+            currentDurationRef.current = 20000;
             const updateProgress = (time) => {
                 if (!startTimeRef.current) startTimeRef.current = time;
                 const elapsed = time - startTimeRef.current;
@@ -82,11 +83,13 @@ export default function StatusViewer({ statuses, initialIndex = 0, onClose }) {
         return () => {
             if (reqRef.current) cancelAnimationFrame(reqRef.current);
         };
-    }, [currentIndex, currentStatus, isMyStatus, showViews]);
+    }, [currentIndex, currentStatus, isMyStatus]); // Removed showViews/isReplying from dependencies here since it restarts animation
 
-    // Pause when views modal is open
+    // Pause when views modal is open or when replying
     useEffect(() => {
-        if (showViews) {
+        const isPaused = showViews || isReplying;
+        
+        if (isPaused) {
             if (videoRef.current) videoRef.current.pause();
             if (reqRef.current) cancelAnimationFrame(reqRef.current);
         } else {
@@ -102,7 +105,7 @@ export default function StatusViewer({ statuses, initialIndex = 0, onClose }) {
                 reqRef.current = requestAnimationFrame(updateProgress);
             }
         }
-    }, [showViews]);
+    }, [showViews, isReplying]);
 
     const handleReply = (e) => {
         e.preventDefault();
@@ -118,6 +121,7 @@ export default function StatusViewer({ statuses, initialIndex = 0, onClose }) {
         });
         
         setReplyText('');
+        setIsReplying(false);
         onClose();
     };
 
@@ -218,15 +222,8 @@ export default function StatusViewer({ statuses, initialIndex = 0, onClose }) {
                                 value={replyText}
                                 onChange={e => setReplyText(e.target.value)}
                                 className="w-full bg-black/40 border border-white/20 text-white placeholder-white/60 rounded-full px-5 py-3 pr-12 focus:outline-none focus:border-white/50 backdrop-blur-md transition-all"
-                                onClick={(e) => {
-                                    // Pause status when typing
-                                    if (reqRef.current) cancelAnimationFrame(reqRef.current);
-                                    if (videoRef.current) videoRef.current.pause();
-                                }}
-                                onBlur={() => {
-                                    // Resume
-                                    setShowViews(false); // Hack to trigger resume effect
-                                }}
+                                onFocus={() => setIsReplying(true)}
+                                onBlur={() => setIsReplying(false)}
                             />
                             <button 
                                 type="submit" 
