@@ -198,7 +198,7 @@ export default function MessageBubble({ message, isOwn }) {
                         <img
                             src={fileUrl || fileUrls[0]}
                             alt={fileName || fileNames[0] || 'Image'}
-                            className="max-w-[260px] rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                            className="max-w-full sm:max-w-[260px] rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
                             onClick={() => setLightboxIndex(0)}
                             loading="lazy"
                         />
@@ -210,7 +210,7 @@ export default function MessageBubble({ message, isOwn }) {
                     <>
                         <video
                             src={fileUrl || fileUrls[0]}
-                            className="max-w-[300px] rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                            className="max-w-full sm:max-w-[300px] rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
                             onClick={() => setLightboxIndex(0)}
                             preload="metadata"
                             muted
@@ -230,8 +230,8 @@ export default function MessageBubble({ message, isOwn }) {
                 const isThreeOrMore = fileUrls.length >= 3;
                 return (
                     <div className="flex flex-col gap-1.5">
-                        <div className={`grid gap-1 ${isTwo ? 'grid-cols-2 max-w-[280px]' :
-                            isThreeOrMore ? 'grid-cols-2 max-w-[280px]' : 'max-w-[260px]'
+                        <div className={`grid gap-1 ${isTwo ? 'grid-cols-2 max-w-full sm:max-w-[280px]' :
+                            isThreeOrMore ? 'grid-cols-2 max-w-full sm:max-w-[280px]' : 'max-w-full sm:max-w-[260px]'
                             }`}>
                             {fileUrls.map((url, i) => {
                                 const isVideo = url.match(/\.(mp4|webm|mov)$/i);
