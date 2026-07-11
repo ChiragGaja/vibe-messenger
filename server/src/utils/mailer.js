@@ -186,6 +186,7 @@ const sendOTP = async (email, otp) => {
             </body>
             </html>
         `
+    };
     try {
         const { data, error } = await resend.emails.send({
             from: `"Vibe Messenger" <${SENDER_EMAIL}>`,
@@ -387,6 +388,7 @@ const sendPasswordResetOTP = async (email, otp) => {
             </body>
             </html>
         `
+    };
     try {
         const { data, error } = await resend.emails.send({
             from: `"Vibe Messenger" <${SENDER_EMAIL}>`,
