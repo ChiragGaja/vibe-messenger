@@ -122,7 +122,8 @@ export default function MediaEditor({ initialFiles, onComplete, onCancel }) {
 
                     canvas.toBlob((blob) => {
                         if (!blob) {
-                            reject(new Error('Canvas is empty'));
+                            console.warn("Canvas toBlob returned null (possibly blocked by Brave shields/privacy extensions). Falling back to original image.");
+                            resolve(state.file);
                             return;
                         }
                         const editedFile = new File([blob], state.file.name, {
@@ -132,10 +133,14 @@ export default function MediaEditor({ initialFiles, onComplete, onCancel }) {
                         resolve(editedFile);
                     }, 'image/jpeg', isHD ? 1.0 : 0.82);
                 } catch (err) {
-                    reject(err);
+                    console.warn("Canvas processing threw an error (possibly Brave shields). Falling back to original image.", err);
+                    resolve(state.file);
                 }
             };
-            image.onerror = (err) => reject(err);
+            image.onerror = (err) => {
+                console.warn("Failed to load image into canvas. Falling back to original image.", err);
+                resolve(state.file);
+            };
             if (!state.url.startsWith('blob:')) {
                 image.crossOrigin = 'anonymous';
             }
