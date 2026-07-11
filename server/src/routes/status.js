@@ -94,8 +94,6 @@ router.post('/', auth, upload.single('media'), async (req, res) => {
     }
 });
 
-});
-
 // POST /api/status/:id/view - Record a status view
 router.post('/:id/view', auth, async (req, res) => {
     try {

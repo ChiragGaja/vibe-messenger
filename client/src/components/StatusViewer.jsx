@@ -79,6 +79,7 @@ export default function StatusViewer({ statuses, initialIndex = 0, onClose }) {
             reqRef.current = requestAnimationFrame(updateProgress);
         }
 
+        return () => {
             if (reqRef.current) cancelAnimationFrame(reqRef.current);
         };
     }, [currentIndex, currentStatus, isMyStatus, showViews]);
