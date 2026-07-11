@@ -23,7 +23,7 @@ export default function Dashboard() {
     const navigate = useNavigate();
     const {
         user, setFriends, setGroups, setFriendRequests, setConnected,
-        setUserOnline, setUserOffline, addMessage, updateMessageStatus,
+        setUserOnline, setUserOffline, setInitialPresence, addMessage, updateMessageStatus,
         setTypingUser, addFriendRequest, activeChat, isConnected,
         editMessage, deleteMessage, updateReactions, setActiveChat, setChatTheme
     } = useChatStore();
@@ -121,8 +121,9 @@ export default function Dashboard() {
             }
         });
 
+        socket.on('initial_presence', ({ onlineUsers }) => setInitialPresence(onlineUsers));
         socket.on('user_online', ({ username }) => setUserOnline(username));
-        socket.on('user_offline', ({ username }) => setUserOffline(username));
+        socket.on('user_offline', ({ username, last_seen }) => setUserOffline(username, last_seen));
 
         socket.on('typing', ({ username }) => {
             useChatStore.getState().setTypingUser(username);

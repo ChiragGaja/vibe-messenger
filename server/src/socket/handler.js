@@ -53,7 +53,22 @@ const setupSocket = (io) => {
 
         if (!onlineUsers.has(userId)) onlineUsers.set(userId, new Set());
         onlineUsers.get(userId).add(socket.id);
+        
+        // Broadcast presence to friends
         await notifyFriendsOfPresence(io, userId, 'user_online');
+
+        // Send initial presence to the connecting user
+        try {
+            const friendsRes = await pool.query(
+                `SELECT u.username, u.id FROM friendships f JOIN users u ON f.friend_id = u.id WHERE f.user_id = $1`, [userId]
+            );
+            const onlineFriendUsernames = friendsRes.rows
+                .filter(friend => onlineUsers.has(friend.id))
+                .map(friend => friend.username);
+            socket.emit('initial_presence', { onlineUsers: onlineFriendUsernames });
+        } catch (err) {
+            console.error('Initial presence error:', err);
+        }
 
         // ─── SEND MESSAGE ─────────────────────────────────────
         socket.on('send_message', async (data, callback) => {
@@ -432,8 +447,9 @@ const setupSocket = (io) => {
                 userSockets.delete(socket.id);
                 if (userSockets.size === 0) {
                     onlineUsers.delete(userId);
-                    await pool.query('UPDATE users SET last_seen = NOW() WHERE id = $1', [userId]);
-                    await notifyFriendsOfPresence(io, userId, 'user_offline');
+                    const lastSeen = new Date().toISOString();
+                    await pool.query('UPDATE users SET last_seen = $1 WHERE id = $2', [lastSeen, userId]);
+                    await notifyFriendsOfPresence(io, userId, 'user_offline', { last_seen: lastSeen });
                 }
             }
         });
@@ -441,13 +457,13 @@ const setupSocket = (io) => {
 };
 
 // ─── HELPERS ──────────────────────────────────────────────
-async function notifyFriendsOfPresence(io, userId, event) {
+async function notifyFriendsOfPresence(io, userId, event, extraData = {}) {
     try {
         const friendsResult = await pool.query('SELECT friend_id FROM friendships WHERE user_id = $1', [userId]);
         const usernameResult = await pool.query('SELECT username FROM users WHERE id = $1', [userId]);
         const username = usernameResult.rows[0]?.username;
         for (const row of friendsResult.rows) {
-            io.to(`user:${row.friend_id}`).emit(event, { username });
+            io.to(`user:${row.friend_id}`).emit(event, { username, ...extraData });
         }
     } catch (error) {
         console.error('Presence notification error:', error);

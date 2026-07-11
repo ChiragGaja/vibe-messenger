@@ -56,11 +56,23 @@ const useChatStore = create(
         next.add(username);
         return { onlineUsers: next };
     }),
-    setUserOffline: (username) => set((state) => {
+    setUserOffline: (username, lastSeen = null) => set((state) => {
         const next = new Set(state.onlineUsers);
         next.delete(username);
-        return { onlineUsers: next };
+        
+        let newFriends = state.friends;
+        let newActiveChat = state.activeChat;
+
+        if (lastSeen) {
+            newFriends = state.friends.map(f => f.username === username ? { ...f, last_seen: lastSeen } : f);
+            if (state.activeChat && state.activeChat.username === username) {
+                newActiveChat = { ...state.activeChat, last_seen: lastSeen };
+            }
+        }
+        
+        return { onlineUsers: next, friends: newFriends, activeChat: newActiveChat };
     }),
+    setInitialPresence: (usernames) => set({ onlineUsers: new Set(usernames) }),
 
     // ─── Friend Requests ─────────────────────────────────
     friendRequests: [],
