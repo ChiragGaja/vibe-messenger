@@ -301,12 +301,21 @@ export default function MessageInput() {
                     onUploadProgress: (e) => setUploadProgress(Math.round((e.loaded * 100) / e.total)),
                 });
 
+                let messageType = 'multi';
+                if (files.length === 1) {
+                    const t = files[0].type;
+                    if (t.startsWith('audio/')) messageType = 'audio';
+                    else if (t.startsWith('video/')) messageType = 'video';
+                    else if (t.startsWith('image/')) messageType = 'image';
+                    else messageType = 'document';
+                }
+
                 // Assuming backend returns arrays for multi-upload
                 socket.emit('send_message', {
                     recipientUsername: activeChat.is_group ? null : activeChat.username,
                     groupId: activeChat.is_group ? activeChat.id : null,
                     content: text.trim() || null,
-                    messageType: files.length === 1 && files[0].type.startsWith('audio/') ? 'audio' : 'multi',
+                    messageType,
                     fileUrls: uploadData.fileUrls,
                     fileNames: uploadData.fileNames,
                     fileSizes: uploadData.fileSizes,

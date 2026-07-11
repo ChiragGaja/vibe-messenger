@@ -248,9 +248,12 @@ export default function MessageBubble({ message, isOwn }) {
                                         onClick={() => setLightboxIndex(i)}
                                     >
                                         {isVideo ? (
-                                            <div className="w-full h-full flex items-center justify-center bg-black/10">
-                                                <div className="w-8 h-8 rounded-full bg-black/50 flex items-center justify-center backdrop-blur-sm">
-                                                    <Play size={14} className="text-white ml-0.5" />
+                                            <div className="w-full h-full relative bg-black/10">
+                                                <video src={url} className="w-full h-full object-cover" preload="metadata" muted />
+                                                <div className="absolute inset-0 flex items-center justify-center">
+                                                    <div className="w-8 h-8 rounded-full bg-black/50 flex items-center justify-center backdrop-blur-sm shadow-lg">
+                                                        <Play size={14} className="text-white ml-0.5" />
+                                                    </div>
                                                 </div>
                                             </div>
                                         ) : (

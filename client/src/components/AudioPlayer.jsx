@@ -70,7 +70,7 @@ export default function AudioPlayer({ src }) {
     };
 
     return (
-        <div className="flex items-center gap-3 w-64 pt-1">
+        <div className="flex items-center gap-3 w-full min-w-[200px] max-w-[250px] pt-1">
             <audio ref={audioRef} src={src} preload="metadata" />
 
             <button
