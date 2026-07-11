@@ -37,6 +37,7 @@
     "multer-storage-cloudinary": "^4.0.0",
     "nodemailer": "^8.0.1",
     "pg": "^8.19.0",
+    "resend": "^6.17.2",
     "socket.io": "^4.8.3",
     "socket.io-adapter": "^2.5.8",
     "web-push": "^3.6.7"

@@ -1,20 +1,12 @@
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
-// Force IPv4 for SMTP connections (fixes ENETUNREACH on Railway/IPv6 environments)
-require('dns').setDefaultResultOrder('ipv4first');
+// Initialize Resend with API key from environment
+const resend = new Resend(process.env.RESEND_API_KEY || 're_9ZecuPZZ_542YSNGujgduHjjb3Rh9dn7V');
 
-// This mailer uses Gmail via environment variables.
-// To use this, you MUST have an App Password generated for the Gmail account.
-
-const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 465,
-    secure: true,
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-    }
-});
+// Note: Resend requires a verified domain to send FROM. 
+// If using the free tier without a domain, you MUST use 'onboarding@resend.dev' 
+// and you can ONLY send emails TO the email you verified on Resend.
+const SENDER_EMAIL = process.env.RESEND_SENDER_EMAIL || 'onboarding@resend.dev';
 
 const sendOTP = async (email, otp) => {
     const mailOptions = {
@@ -195,18 +187,23 @@ const sendOTP = async (email, otp) => {
             </body>
             </html>
         `
-    };
-
-    console.log(`-----------------------------------------`);
-    console.log(`📧 SENDING OTP: ${otp} TO: ${email}`);
-    console.log(`-----------------------------------------`);
-
     try {
-        const info = await transporter.sendMail(mailOptions);
-        console.log('✅ Email sent successfully:', info.messageId);
+        const { data, error } = await resend.emails.send({
+            from: `"Vibe" <${SENDER_EMAIL}>`,
+            to: email,
+            subject: 'Welcome to Vibe! Verify Your Email',
+            html: mailOptions.html
+        });
+
+        if (error) {
+            console.error('Error sending email via Resend:', error);
+            return false;
+        }
+
+        console.log('✅ Email sent successfully via Resend:', data.id);
         return true;
     } catch (error) {
-        console.error('Error sending email:', error);
+        console.error('Exception sending email:', error);
         return false;
     }
 };
@@ -390,18 +387,23 @@ const sendPasswordResetOTP = async (email, otp) => {
             </body>
             </html>
         `
-    };
-
-    console.log(`-----------------------------------------`);
-    console.log(`🔑 SENDING PASSWORD RESET OTP: ${otp} TO: ${email}`);
-    console.log(`-----------------------------------------`);
-
     try {
-        const info = await transporter.sendMail(mailOptions);
-        console.log('✅ Password reset email sent:', info.messageId);
+        const { data, error } = await resend.emails.send({
+            from: `"Vibe" <${SENDER_EMAIL}>`,
+            to: email,
+            subject: 'Reset Your Vibe Password',
+            html: mailOptions.html
+        });
+
+        if (error) {
+            console.error('Error sending password reset email via Resend:', error);
+            return false;
+        }
+
+        console.log('✅ Password reset email sent via Resend:', data.id);
         return true;
     } catch (error) {
-        console.error('Error sending password reset email:', error);
+        console.error('Exception sending password reset email:', error);
         return false;
     }
 };
