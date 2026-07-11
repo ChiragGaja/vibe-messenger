@@ -495,7 +495,7 @@ export default function MessageInput() {
                         >
                             <Paperclip size={18} />
                         </button>
-                        <input type="file" multiple ref={fileInputRef} onChange={handleFileSelect} className="hidden" accept="image/*,video/*,.pdf,.doc,.docx,.txt,.xlsx,.xls,.zip,.rar" />
+                        <input type="file" multiple ref={fileInputRef} onChange={handleFileSelect} className="hidden" accept="image/jpeg,image/png,image/webp,image/gif,video/*,.pdf,.doc,.docx,.txt,.xlsx,.xls,.zip,.rar" />
 
                         {/* Emoji Picker Button */}
                         <div className="relative" ref={emojiPickerRef}>

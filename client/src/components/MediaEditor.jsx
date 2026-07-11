@@ -72,10 +72,6 @@ export default function MediaEditor({ initialFiles, onComplete, onCancel }) {
     const getEditedImage = (state) => {
         return new Promise((resolve, reject) => {
             const image = new Image();
-            image.src = state.url;
-            if (!state.url.startsWith('blob:')) {
-                image.crossOrigin = 'anonymous';
-            }
             image.onload = () => {
                 const canvas = document.createElement('canvas');
                 const ctx = canvas.getContext('2d');
@@ -123,6 +119,10 @@ export default function MediaEditor({ initialFiles, onComplete, onCancel }) {
                 }, 'image/jpeg', isHD ? 1.0 : 0.82);
             };
             image.onerror = (err) => reject(err);
+            if (!state.url.startsWith('blob:')) {
+                image.crossOrigin = 'anonymous';
+            }
+            image.src = state.url;
         });
     };
 
