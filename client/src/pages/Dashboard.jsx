@@ -63,7 +63,7 @@ export default function Dashboard() {
 
     useEffect(() => {
         if (!user) return;
-        if ('serviceWorker' in navigator && 'PushManager' in window) {
+        if ('serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window) {
             navigator.serviceWorker.ready.then(async (registration) => {
                 const permission = await Notification.requestPermission();
                 if (permission === 'granted') {
@@ -114,7 +114,7 @@ export default function Dashboard() {
                     });
                 }
             }
-            if (document.hidden && Notification.permission === 'granted') {
+            if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
                 new Notification(message.senderUsername, {
                     body: message.messageType === 'text' ? message.content : `Sent a ${message.messageType}`,
                 });
@@ -179,7 +179,9 @@ export default function Dashboard() {
             // simple-peer handles ICE under the hood
         });
 
-        if (Notification.permission === 'default') Notification.requestPermission();
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
 
         return () => { disconnectSocket(); setConnected(false); };
     }, [user]);
