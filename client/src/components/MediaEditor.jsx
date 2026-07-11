@@ -16,7 +16,7 @@ export default function MediaEditor({ initialFiles, onComplete, onCancel }) {
         initialFiles.map(file => ({
             file,
             type: file.type.startsWith('image/') ? 'image' : 'video',
-            url: null, // Will be generated via FileReader
+            url: URL.createObjectURL(file), // Generate explicitly on mount
             crop: { x: 0, y: 0 },
             zoom: 1,
             aspect: null,
@@ -29,21 +29,6 @@ export default function MediaEditor({ initialFiles, onComplete, onCancel }) {
     );
     const [isHD, setIsHD] = useState(false);
     const [processing, setProcessing] = useState(false);
-
-    useEffect(() => {
-        // Load Data URLs to prevent iOS Safari blob canvas tainting
-        fileStates.forEach((state, index) => {
-            if (!state.url) {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    setFileStates(prev => prev.map((s, i) => 
-                        i === index ? { ...s, url: e.target.result } : s
-                    ));
-                };
-                reader.readAsDataURL(state.file);
-            }
-        });
-    }, [fileStates]);
 
     const currentMedia = fileStates[currentIndex];
 
@@ -151,7 +136,7 @@ export default function MediaEditor({ initialFiles, onComplete, onCancel }) {
                 }
             };
             image.onerror = (err) => reject(err);
-            if (state.url && state.url.startsWith('http')) {
+            if (!state.url.startsWith('blob:')) {
                 image.crossOrigin = 'anonymous';
             }
             image.src = state.url;
