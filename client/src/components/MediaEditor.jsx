@@ -98,8 +98,22 @@ export default function MediaEditor({ initialFiles, onComplete, onCancel }) {
                         return;
                     }
 
-                    canvas.width = croppedAreaPixels.width;
-                    canvas.height = croppedAreaPixels.height;
+                    let targetWidth = croppedAreaPixels.width;
+                    let targetHeight = croppedAreaPixels.height;
+                    const MAX_DIM = isHD ? 1920 : 1280;
+
+                    if (targetWidth > MAX_DIM || targetHeight > MAX_DIM) {
+                        if (targetWidth > targetHeight) {
+                            targetHeight = Math.round((targetHeight * MAX_DIM) / targetWidth);
+                            targetWidth = MAX_DIM;
+                        } else {
+                            targetWidth = Math.round((targetWidth * MAX_DIM) / targetHeight);
+                            targetHeight = MAX_DIM;
+                        }
+                    }
+
+                    canvas.width = targetWidth;
+                    canvas.height = targetHeight;
 
                     // Apply Filters
                     const b = state.brightness / 100;
@@ -117,8 +131,8 @@ export default function MediaEditor({ initialFiles, onComplete, onCancel }) {
                         croppedAreaPixels.height,
                         0,
                         0,
-                        croppedAreaPixels.width,
-                        croppedAreaPixels.height
+                        targetWidth,
+                        targetHeight
                     );
 
                     canvas.toBlob((blob) => {
