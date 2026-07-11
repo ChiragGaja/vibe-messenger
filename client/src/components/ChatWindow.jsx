@@ -33,7 +33,7 @@ export default function ChatWindow({ onBack, onToggleSidebar, sidebarOpen }) {
 
     const isOnline = onlineUsers.has(activeChat?.username);
 
-    const { setLocalStream, setCallStatus, setPeerInstance } = useCallStore();
+    const { setLocalStream, setCallStatus, setPeerInstance, setRemoteStream } = useCallStore();
 
     const getInitials = (name) => name?.charAt(0).toUpperCase() || '?';
 
@@ -82,6 +82,10 @@ export default function ChatWindow({ onBack, onToggleSidebar, sidebarOpen }) {
                     callerAvatar: user?.avatar_url,
                     isVideo: isVideo
                 });
+            });
+
+            peer.on('stream', (remoteStream) => {
+                setRemoteStream(remoteStream);
             });
 
             setPeerInstance(peer);

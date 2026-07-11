@@ -4,7 +4,7 @@ import useCallStore from '../store/callStore';
 import { getSocket } from '../socket/socket';
 
 export default function IncomingCallDialog() {
-    const { isReceivingCall, callerData, endCall, setCallStatus, setPeerInstance, setLocalStream } = useCallStore();
+    const { isReceivingCall, callerData, endCall, setCallStatus, setPeerInstance, setLocalStream, setRemoteStream } = useCallStore();
 
     if (!isReceivingCall || !callerData || useCallStore.getState().callStatus !== 'ringing') return null;
 
@@ -37,6 +37,10 @@ export default function IncomingCallDialog() {
                     signal: data,
                     callerUsername: callerData.callerUsername
                 });
+            });
+
+            peer.on('stream', (remoteStream) => {
+                setRemoteStream(remoteStream);
             });
 
             peer.signal(callerData.signal);

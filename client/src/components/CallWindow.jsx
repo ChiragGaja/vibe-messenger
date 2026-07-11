@@ -58,6 +58,7 @@ export default function CallWindow() {
     useEffect(() => {
         if (localVideoRef.current && localStream) {
             localVideoRef.current.srcObject = localStream;
+            localVideoRef.current.play().catch(e => console.log('Local play interrupted', e));
         }
     }, [localStream]);
 
@@ -65,6 +66,7 @@ export default function CallWindow() {
     useEffect(() => {
         if (remoteVideoRef.current && remoteStream) {
             remoteVideoRef.current.srcObject = remoteStream;
+            remoteVideoRef.current.play().catch(e => console.log('Remote play interrupted', e));
         }
     }, [remoteStream]);
 
