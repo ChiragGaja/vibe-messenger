@@ -66,6 +66,12 @@ export default function ChatWindow({ onBack, onToggleSidebar, sidebarOpen }) {
                 initiator: true,
                 trickle: false,
                 stream: stream,
+                config: {
+                    iceServers: [
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { urls: 'stun:global.stun.twilio.com:3478' }
+                    ]
+                }
             });
 
             peer.on('signal', (data) => {

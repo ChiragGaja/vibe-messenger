@@ -1,6 +1,6 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mic, MicOff, PhoneOff, Video, VideoOff } from 'lucide-react';
+import { Mic, MicOff, PhoneOff, Video, VideoOff, Volume2, Ear } from 'lucide-react';
 import useCallStore from '../store/callStore';
 import { getSocket } from '../socket/socket';
 import useChatStore from '../store/chatStore';
@@ -22,6 +22,37 @@ export default function CallWindow() {
 
     const localVideoRef = useRef(null);
     const remoteVideoRef = useRef(null);
+    const [isSpeaker, setIsSpeaker] = useState(true);
+    const [canSwitchAudio, setCanSwitchAudio] = useState(false);
+
+    useEffect(() => {
+        // Check if browser supports audio output selection
+        if (remoteVideoRef.current && typeof remoteVideoRef.current.setSinkId === 'function') {
+            navigator.mediaDevices.enumerateDevices().then(devices => {
+                const audioOutputs = devices.filter(d => d.kind === 'audiooutput');
+                if (audioOutputs.length > 1) {
+                    setCanSwitchAudio(true);
+                }
+            }).catch(console.error);
+        }
+    }, [remoteStream]);
+
+    const toggleAudioOutput = async () => {
+        if (!remoteVideoRef.current || typeof remoteVideoRef.current.setSinkId !== 'function') return;
+        try {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const audioOutputs = devices.filter(d => d.kind === 'audiooutput');
+            if (audioOutputs.length > 1) {
+                const currentId = remoteVideoRef.current.sinkId || audioOutputs[0].deviceId;
+                const nextDevice = audioOutputs.find(d => d.deviceId !== currentId && d.deviceId !== 'default') || audioOutputs[0];
+                await remoteVideoRef.current.setSinkId(nextDevice.deviceId);
+                setIsSpeaker(!isSpeaker);
+            }
+        } catch (err) {
+            console.error("Error switching audio output:", err);
+            alert("Could not switch audio output device.");
+        }
+    };
 
     // Play local stream immediately when available
     useEffect(() => {
@@ -164,6 +195,16 @@ export default function CallWindow() {
                     >
                         {isMuted ? <MicOff size={24} /> : <Mic size={24} />}
                     </button>
+
+                    {canSwitchAudio && (
+                        <button
+                            onClick={toggleAudioOutput}
+                            className={`w-14 h-14 rounded-full flex items-center justify-center transition-all bg-surface hover:bg-surface-hover text-text`}
+                            title={isSpeaker ? 'Switch to Earpiece' : 'Switch to Speaker'}
+                        >
+                            {isSpeaker ? <Volume2 size={24} /> : <Ear size={24} />}
+                        </button>
+                    )}
 
                     {!isAudioOnly && (
                         <button

@@ -6,7 +6,7 @@ import { getSocket } from '../socket/socket';
 export default function IncomingCallDialog() {
     const { isReceivingCall, callerData, endCall, setCallStatus, setPeerInstance, setLocalStream } = useCallStore();
 
-    if (!isReceivingCall || !callerData) return null;
+    if (!isReceivingCall || !callerData || useCallStore.getState().callStatus !== 'ringing') return null;
 
     const acceptCall = async (withVideo) => {
         try {
@@ -24,6 +24,12 @@ export default function IncomingCallDialog() {
                 initiator: false,
                 trickle: false,
                 stream: stream,
+                config: {
+                    iceServers: [
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { urls: 'stun:global.stun.twilio.com:3478' }
+                    ]
+                }
             });
 
             peer.on('signal', (data) => {
