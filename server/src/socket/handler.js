@@ -73,7 +73,7 @@ const setupSocket = (io) => {
         // ─── SEND MESSAGE ─────────────────────────────────────
         socket.on('send_message', async (data, callback) => {
             try {
-                const { recipientUsername, groupId, content, messageType = 'text', fileUrl, fileName, fileSize, fileUrls, fileNames, fileSizes, replyToId, isHD = false } = data;
+                const { recipientUsername, groupId, content, messageType = 'text', fileUrl, fileName, fileSize, fileUrls, fileNames, fileSizes, replyToId, isHD = false, linkImage: customLinkImage, linkTitle: customLinkTitle } = data;
 
                 let recipientId = null;
                 if (recipientUsername) {
@@ -90,8 +90,12 @@ const setupSocket = (io) => {
                 const sizes = fileSizes || (fileSize ? [fileSize] : []);
 
                 // Link Scraping
-                let linkTitle = null, linkDescription = null, linkImage = null, linkUrl = null;
-                if (content && messageType === 'text') {
+                let linkTitle = customLinkTitle || null;
+                let linkDescription = null;
+                let linkImage = customLinkImage || null;
+                let linkUrl = null;
+                
+                if (!linkTitle && content && messageType === 'text') {
                     const extractedUrls = extractUrls(content);
                     if (extractedUrls.length > 0) {
                         const metadata = await scrapeMetadata(extractedUrls[0]); // Scrape first URL

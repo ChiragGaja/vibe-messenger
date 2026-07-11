@@ -118,6 +118,10 @@ export default function StatusViewer({ statuses, initialIndex = 0, onClose }) {
             messageType: 'text',
             linkImage: currentStatus.mediaUrl,
             linkTitle: 'Replying to Status'
+        }, (res) => {
+            if (res?.success) {
+                useChatStore.getState().addMessage(res.message);
+            }
         });
         
         setReplyText('');
