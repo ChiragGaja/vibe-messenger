@@ -11,7 +11,13 @@ router.get('/', auth, async (req, res) => {
         
         const query = `
             SELECT s.id, s.user_id, s.media_url, s.media_type, s.expires_at, s.created_at,
-                   u.username, u.display_name, u.avatar_url
+                   u.username, u.display_name, u.avatar_url,
+                   (
+                       SELECT json_agg(json_build_object('username', vu.username, 'display_name', vu.display_name, 'avatar_url', vu.avatar_url, 'viewed_at', sv.viewed_at))
+                       FROM status_views sv
+                       JOIN users vu ON sv.viewer_id = vu.id
+                       WHERE sv.status_id = s.id AND s.user_id = $1
+                   ) as views
             FROM statuses s
             JOIN users u ON s.user_id = u.id
             WHERE (s.user_id = $1 OR s.user_id IN (
@@ -37,10 +43,13 @@ router.get('/', auth, async (req, res) => {
             }
             grouped[row.user_id].statuses.push({
                 id: row.id,
+                userId: row.user_id,
+                ownerUsername: row.username,
                 mediaUrl: row.media_url,
                 mediaType: row.media_type,
                 expiresAt: row.expires_at,
-                createdAt: row.created_at
+                createdAt: row.created_at,
+                views: row.views || []
             });
         });
         
@@ -82,6 +91,31 @@ router.post('/', auth, upload.single('media'), async (req, res) => {
     } catch (err) {
         console.error('Upload status error:', err);
         res.status(500).json({ error: err.message || 'Failed to upload status' });
+    }
+});
+
+});
+
+// POST /api/status/:id/view - Record a status view
+router.post('/:id/view', auth, async (req, res) => {
+    try {
+        const statusId = req.params.id;
+        const viewerId = req.userId;
+        
+        // Don't record if viewing own status
+        const statusRes = await pool.query('SELECT user_id FROM statuses WHERE id = $1', [statusId]);
+        if (statusRes.rows.length === 0) return res.status(404).json({ error: 'Status not found' });
+        if (statusRes.rows[0].user_id === viewerId) return res.status(200).json({ message: 'Ignored' });
+        
+        await pool.query(
+            'INSERT INTO status_views (status_id, viewer_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+            [statusId, viewerId]
+        );
+        
+        res.status(200).json({ success: true });
+    } catch (err) {
+        console.error('Record status view error:', err);
+        res.status(500).json({ error: 'Failed to record view' });
     }
 });
 

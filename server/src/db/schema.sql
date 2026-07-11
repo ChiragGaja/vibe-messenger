@@ -147,3 +147,11 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
   UNIQUE(user_id, token)
 );
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user ON refresh_tokens(user_id);
+
+-- Status Views
+CREATE TABLE IF NOT EXISTS status_views (
+  status_id INT REFERENCES statuses(id) ON DELETE CASCADE,
+  viewer_id INT REFERENCES users(id) ON DELETE CASCADE,
+  viewed_at TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (status_id, viewer_id)
+);

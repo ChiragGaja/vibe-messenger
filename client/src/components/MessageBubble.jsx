@@ -288,30 +288,50 @@ export default function MessageBubble({ message, isOwn }) {
                 return (
                     <div className="flex flex-col gap-2">
                         <span className="text-sm whitespace-pre-wrap word-break">{message.content}</span>
-                        {linkTitle && linkUrl && (
-                            <a
-                                href={linkUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="mt-1 flex flex-col sm:flex-row overflow-hidden rounded-xl border border-border bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors no-underline text-inherit max-w-[320px]"
-                            >
-                                {linkImage && (
-                                    <div className="w-full sm:w-24 h-32 sm:h-24 shrink-0 bg-surface-hover">
-                                        <img src={linkImage} alt={linkTitle} className="w-full h-full object-cover" loading="lazy" />
-                                    </div>
-                                )}
-                                <div className="p-2.5 flex flex-col justify-center flex-1 min-w-0">
-                                    <div className="text-xs font-semibold truncate mb-0.5">{linkTitle}</div>
-                                    {linkDescription && (
-                                        <div className="text-[10px] opacity-70 line-clamp-2 leading-snug break-words">
-                                            {linkDescription}
+                        {(linkTitle && (linkUrl || linkImage)) && (
+                            linkUrl ? (
+                                <a
+                                    href={linkUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="mt-1 flex flex-col sm:flex-row overflow-hidden rounded-xl border border-border bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors no-underline text-inherit max-w-[320px]"
+                                >
+                                    {linkImage && (
+                                        <div className="w-full sm:w-24 h-32 sm:h-24 shrink-0 bg-surface-hover">
+                                            <img src={linkImage} alt={linkTitle} className="w-full h-full object-cover" loading="lazy" />
                                         </div>
                                     )}
-                                    <div className="mt-1 text-[9px] font-medium opacity-50 uppercase tracking-widest truncate">
-                                        {new URL(linkUrl).hostname.replace('www.', '')}
+                                    <div className="p-2.5 flex flex-col justify-center flex-1 min-w-0">
+                                        <div className="text-xs font-semibold truncate mb-0.5">{linkTitle}</div>
+                                        {linkDescription && (
+                                            <div className="text-[10px] opacity-70 line-clamp-2 leading-snug break-words">
+                                                {linkDescription}
+                                            </div>
+                                        )}
+                                        {linkUrl && (
+                                            <div className="mt-1 text-[9px] font-medium opacity-50 uppercase tracking-widest truncate">
+                                                {new URL(linkUrl).hostname.replace('www.', '')}
+                                            </div>
+                                        )}
+                                    </div>
+                                </a>
+                            ) : (
+                                <div className="mt-1 flex flex-col sm:flex-row overflow-hidden rounded-xl border border-border bg-black/5 dark:bg-white/5 text-inherit max-w-[320px]">
+                                    {linkImage && (
+                                        <div className="w-full sm:w-24 h-32 sm:h-24 shrink-0 bg-surface-hover">
+                                            <img src={linkImage} alt={linkTitle} className="w-full h-full object-cover" loading="lazy" />
+                                        </div>
+                                    )}
+                                    <div className="p-2.5 flex flex-col justify-center flex-1 min-w-0">
+                                        <div className="text-xs font-semibold truncate mb-0.5">{linkTitle}</div>
+                                        {linkDescription && (
+                                            <div className="text-[10px] opacity-70 line-clamp-2 leading-snug break-words">
+                                                {linkDescription}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
-                            </a>
+                            )
                         )}
                     </div>
                 );

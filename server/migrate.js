@@ -34,6 +34,16 @@ async function migrate() {
         await pool.query('CREATE INDEX IF NOT EXISTS idx_messages_reply ON messages(reply_to_id)');
         await pool.query('CREATE INDEX IF NOT EXISTS idx_reactions_message ON message_reactions(message_id)');
 
+        // Create status_views table
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS status_views (
+                status_id INT REFERENCES statuses(id) ON DELETE CASCADE,
+                viewer_id INT REFERENCES users(id) ON DELETE CASCADE,
+                viewed_at TIMESTAMPTZ DEFAULT NOW(),
+                PRIMARY KEY (status_id, viewer_id)
+            )
+        `);
+
         console.log('✅ Migration complete!');
         process.exit(0);
     } catch (error) {
