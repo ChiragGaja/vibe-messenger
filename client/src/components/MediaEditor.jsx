@@ -16,7 +16,7 @@ export default function MediaEditor({ initialFiles, onComplete, onCancel }) {
         initialFiles.map(file => ({
             file,
             type: file.type.startsWith('image/') ? 'image' : 'video',
-            url: URL.createObjectURL(file), // Generate explicitly on mount
+            url: null, // Will be generated via FileReader
             crop: { x: 0, y: 0 },
             zoom: 1,
             aspect: null,
@@ -29,6 +29,21 @@ export default function MediaEditor({ initialFiles, onComplete, onCancel }) {
     );
     const [isHD, setIsHD] = useState(false);
     const [processing, setProcessing] = useState(false);
+
+    useEffect(() => {
+        // Load Data URLs to prevent iOS Safari blob canvas tainting
+        fileStates.forEach((state, index) => {
+            if (!state.url) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    setFileStates(prev => prev.map((s, i) => 
+                        i === index ? { ...s, url: e.target.result } : s
+                    ));
+                };
+                reader.readAsDataURL(state.file);
+            }
+        });
+    }, [fileStates]);
 
     const currentMedia = fileStates[currentIndex];
 
@@ -73,53 +88,56 @@ export default function MediaEditor({ initialFiles, onComplete, onCancel }) {
         return new Promise((resolve, reject) => {
             const image = new Image();
             image.onload = () => {
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
+                try {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
 
-                const { croppedAreaPixels } = state;
-                if (!croppedAreaPixels) {
-                    resolve(state.file);
-                    return;
-                }
-
-                canvas.width = croppedAreaPixels.width;
-                canvas.height = croppedAreaPixels.height;
-
-                // Apply Filters
-                // Exposure is complex, we simulate with brightness + contrast adjustments
-                const b = state.brightness / 100;
-                const c = state.contrast / 100;
-                const e = state.exposure / 100;
-                const s = state.saturation / 100;
-
-                ctx.filter = `brightness(${b * e}) contrast(${c}) saturate(${s})`;
-
-                ctx.drawImage(
-                    image,
-                    croppedAreaPixels.x,
-                    croppedAreaPixels.y,
-                    croppedAreaPixels.width,
-                    croppedAreaPixels.height,
-                    0,
-                    0,
-                    croppedAreaPixels.width,
-                    croppedAreaPixels.height
-                );
-
-                canvas.toBlob((blob) => {
-                    if (!blob) {
-                        reject(new Error('Canvas is empty'));
+                    const { croppedAreaPixels } = state;
+                    if (!croppedAreaPixels) {
+                        resolve(state.file);
                         return;
                     }
-                    const editedFile = new File([blob], state.file.name, {
-                        type: 'image/jpeg',
-                        lastModified: Date.now(),
-                    });
-                    resolve(editedFile);
-                }, 'image/jpeg', isHD ? 1.0 : 0.82);
+
+                    canvas.width = croppedAreaPixels.width;
+                    canvas.height = croppedAreaPixels.height;
+
+                    // Apply Filters
+                    const b = state.brightness / 100;
+                    const c = state.contrast / 100;
+                    const e = state.exposure / 100;
+                    const s = state.saturation / 100;
+
+                    ctx.filter = `brightness(${b * e}) contrast(${c}) saturate(${s})`;
+
+                    ctx.drawImage(
+                        image,
+                        croppedAreaPixels.x,
+                        croppedAreaPixels.y,
+                        croppedAreaPixels.width,
+                        croppedAreaPixels.height,
+                        0,
+                        0,
+                        croppedAreaPixels.width,
+                        croppedAreaPixels.height
+                    );
+
+                    canvas.toBlob((blob) => {
+                        if (!blob) {
+                            reject(new Error('Canvas is empty'));
+                            return;
+                        }
+                        const editedFile = new File([blob], state.file.name, {
+                            type: 'image/jpeg',
+                            lastModified: Date.now(),
+                        });
+                        resolve(editedFile);
+                    }, 'image/jpeg', isHD ? 1.0 : 0.82);
+                } catch (err) {
+                    reject(err);
+                }
             };
             image.onerror = (err) => reject(err);
-            if (!state.url.startsWith('blob:')) {
+            if (state.url && state.url.startsWith('http')) {
                 image.crossOrigin = 'anonymous';
             }
             image.src = state.url;
