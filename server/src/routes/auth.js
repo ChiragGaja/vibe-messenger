@@ -89,8 +89,8 @@ router.post(
                 return res.status(409).json({ error: 'Email already registered' });
             }
 
-            // Hash password with bcrypt (12 salt rounds)
-            const saltRounds = 12;
+            // Hash password with bcrypt (10 salt rounds for performance on cloud VMs)
+            const saltRounds = 10;
             const passwordHash = await bcrypt.hash(password, saltRounds);
 
             // Generate 6-digit OTP for email verification
@@ -250,6 +250,46 @@ router.post(
         }
     }
 );
+
+// ─── DEBUG EMAIL ENDPOINT ───────────────────────────────
+router.get('/debug-email', async (req, res) => {
+    try {
+        const nodemailer = require('nodemailer');
+        const transporter = nodemailer.createTransport({
+            host: 'smtp.gmail.com',
+            port: 465,
+            secure: true,
+            auth: {
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASS
+            }
+        });
+        
+        // Step 1: Verify connection
+        await transporter.verify();
+        
+        // Step 2: Try sending a test email to the configured user
+        if (req.query.send) {
+            const info = await transporter.sendMail({
+                from: '"Vibe Debug" <noreply@vibe.chat>',
+                to: process.env.EMAIL_USER,
+                subject: 'Vibe Debug Email',
+                text: 'This is a test to verify SMTP works.'
+            });
+            return res.json({ success: true, message: 'SMTP connected and test email sent!', info });
+        }
+        
+        res.json({ success: true, message: 'SMTP connection verified successfully.' });
+    } catch (err) {
+        res.status(500).json({ 
+            success: false, 
+            error: err.message,
+            code: err.code,
+            command: err.command,
+            stack: err.stack 
+        });
+    }
+});
 
 // ─── VERIFY OTP ───────────────────────────────────────
 router.post(
