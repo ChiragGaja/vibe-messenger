@@ -27,7 +27,7 @@ export default function CallWindow() {
 
     useEffect(() => {
         // Check if browser supports audio output selection
-        if (remoteVideoRef.current && typeof remoteVideoRef.current.setSinkId === 'function') {
+        if (remoteVideoRef.current && typeof remoteVideoRef.current.setSinkId === 'function' && navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
             navigator.mediaDevices.enumerateDevices().then(devices => {
                 const audioOutputs = devices.filter(d => d.kind === 'audiooutput');
                 if (audioOutputs.length > 1) {
@@ -38,7 +38,7 @@ export default function CallWindow() {
     }, [remoteStream]);
 
     const toggleAudioOutput = async () => {
-        if (!remoteVideoRef.current || typeof remoteVideoRef.current.setSinkId !== 'function') return;
+        if (!remoteVideoRef.current || typeof remoteVideoRef.current.setSinkId !== 'function' || !navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
         try {
             const devices = await navigator.mediaDevices.enumerateDevices();
             const audioOutputs = devices.filter(d => d.kind === 'audiooutput');
@@ -58,7 +58,10 @@ export default function CallWindow() {
     useEffect(() => {
         if (localVideoRef.current && localStream) {
             localVideoRef.current.srcObject = localStream;
-            localVideoRef.current.play().catch(e => console.log('Local play interrupted', e));
+            const playPromise = localVideoRef.current.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(e => console.log('Local play interrupted', e));
+            }
         }
     }, [localStream]);
 
@@ -66,7 +69,10 @@ export default function CallWindow() {
     useEffect(() => {
         if (remoteVideoRef.current && remoteStream) {
             remoteVideoRef.current.srcObject = remoteStream;
-            remoteVideoRef.current.play().catch(e => console.log('Remote play interrupted', e));
+            const playPromise = remoteVideoRef.current.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(e => console.log('Remote play interrupted', e));
+            }
         }
     }, [remoteStream]);
 
