@@ -23,22 +23,17 @@ export default function CallWindow() {
     const localVideoRef = useRef(null);
     const remoteVideoRef = useRef(null);
     const [isSpeaker, setIsSpeaker] = useState(true);
-    const [canSwitchAudio, setCanSwitchAudio] = useState(false);
 
     useEffect(() => {
-        // Check if browser supports audio output selection
-        if (remoteVideoRef.current && typeof remoteVideoRef.current.setSinkId === 'function' && navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
-            navigator.mediaDevices.enumerateDevices().then(devices => {
-                const audioOutputs = devices.filter(d => d.kind === 'audiooutput');
-                if (audioOutputs.length > 1) {
-                    setCanSwitchAudio(true);
-                }
-            }).catch(console.error);
-        }
+        // We no longer strictly check device capabilities on mount 
+        // to ensure the button always renders for better UI consistency.
     }, [remoteStream]);
 
     const toggleAudioOutput = async () => {
-        if (!remoteVideoRef.current || typeof remoteVideoRef.current.setSinkId !== 'function' || !navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
+        if (!remoteVideoRef.current || typeof remoteVideoRef.current.setSinkId !== 'function' || !navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+            alert("Your browser or device does not support manual audio routing. Please use your device's native volume controls or Control Center.");
+            return;
+        }
         try {
             const devices = await navigator.mediaDevices.enumerateDevices();
             const audioOutputs = devices.filter(d => d.kind === 'audiooutput');
@@ -204,15 +199,13 @@ export default function CallWindow() {
                         {isMuted ? <MicOff size={24} /> : <Mic size={24} />}
                     </button>
 
-                    {canSwitchAudio && (
-                        <button
-                            onClick={toggleAudioOutput}
-                            className={`w-14 h-14 rounded-full flex items-center justify-center transition-all bg-surface hover:bg-surface-hover text-text`}
-                            title={isSpeaker ? 'Switch to Earpiece' : 'Switch to Speaker'}
-                        >
-                            {isSpeaker ? <Volume2 size={24} /> : <Ear size={24} />}
-                        </button>
-                    )}
+                    <button
+                        onClick={toggleAudioOutput}
+                        className={`w-14 h-14 rounded-full flex items-center justify-center transition-all bg-surface hover:bg-surface-hover text-text`}
+                        title={isSpeaker ? 'Switch to Earpiece' : 'Switch to Speaker'}
+                    >
+                        {isSpeaker ? <Volume2 size={24} /> : <Ear size={24} />}
+                    </button>
 
                     {!isAudioOnly && (
                         <button

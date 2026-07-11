@@ -16,27 +16,7 @@
     <meta property="og:description" content="A lightning-fast, beautifully designed chat platform for modern communication. No clutter, just conversation." />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
-    <script>
-      window.addEventListener("error", function(e) {
-        if (e.message === "Script error." || !e.filename) return;
-        if (!document.getElementById("error-log")) {
-          const div = document.createElement("div");
-          div.id = "error-log";
-          div.style = "position: fixed; top: 0; left: 0; background: red; color: white; padding: 20px; z-index: 99999; font-family: monospace; font-size: 14px; width: 100%; white-space: pre-wrap; max-height: 50vh; overflow-y: auto;";
-          document.body.prepend(div);
-        }
-        document.getElementById("error-log").innerText += "\nError: " + e.message + "\nFile: " + e.filename + " Line: " + e.lineno + "\n";
-      });
-      window.addEventListener("unhandledrejection", function(e) {
-        if (!document.getElementById("error-log")) {
-          const div = document.createElement("div");
-          div.id = "error-log";
-          div.style = "position: fixed; top: 0; left: 0; background: red; color: white; padding: 20px; z-index: 99999; font-family: monospace; font-size: 14px; width: 100%; white-space: pre-wrap; max-height: 50vh; overflow-y: auto;";
-          document.body.prepend(div);
-        }
-        document.getElementById("error-log").innerText += "\nUnhandled Promise: " + (e.reason?.message || e.reason) + "\n";
-      });
-    </script>
+
   </head>
   <body>
     <div id="root"></div>
