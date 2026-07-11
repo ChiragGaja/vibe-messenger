@@ -1,12 +1,11 @@
 const { Resend } = require('resend');
 
 // Initialize Resend with API key from environment
-const resend = new Resend(process.env.RESEND_API_KEY || 're_9ZecuPZZ_542YSNGujgduHjjb3Rh9dn7V');
+const resend = new Resend(process.env.RESEND_API_KEY || 're_YYJxXY5L_4MccC3hUQRhzWAVJ3an2BGtv');
 
 // Note: Resend requires a verified domain to send FROM. 
-// If using the free tier without a domain, you MUST use 'onboarding@resend.dev' 
-// and you can ONLY send emails TO the email you verified on Resend.
-const SENDER_EMAIL = process.env.RESEND_SENDER_EMAIL || 'onboarding@resend.dev';
+const SENDER_EMAIL = process.env.RESEND_SENDER_EMAIL || 'vibe@nirvighadvisors.com';
+const REPLY_TO_EMAIL = 'chiragramesh315@gmail.com';
 
 const sendOTP = async (email, otp) => {
     const mailOptions = {
@@ -189,10 +188,11 @@ const sendOTP = async (email, otp) => {
         `
     try {
         const { data, error } = await resend.emails.send({
-            from: `"Vibe" <${SENDER_EMAIL}>`,
+            from: `"Vibe Messenger" <${SENDER_EMAIL}>`,
             to: email,
             subject: 'Welcome to Vibe! Verify Your Email',
-            html: mailOptions.html
+            html: mailOptions.html,
+            reply_to: REPLY_TO_EMAIL
         });
 
         if (error) {
@@ -389,10 +389,11 @@ const sendPasswordResetOTP = async (email, otp) => {
         `
     try {
         const { data, error } = await resend.emails.send({
-            from: `"Vibe" <${SENDER_EMAIL}>`,
+            from: `"Vibe Messenger" <${SENDER_EMAIL}>`,
             to: email,
             subject: 'Reset Your Vibe Password',
-            html: mailOptions.html
+            html: mailOptions.html,
+            reply_to: REPLY_TO_EMAIL
         });
 
         if (error) {
