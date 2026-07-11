@@ -195,7 +195,7 @@ export default function Dashboard() {
     if (!user) return null;
 
     return (
-        <div className="flex h-dvh overflow-hidden bg-background relative" style={{ height: '100dvh' }}>
+        <div className="flex overflow-hidden bg-background relative" style={{ height: 'var(--app-height, 100dvh)' }}>
             <AnimatePresence>
                 {!isConnected && (
                     <motion.div

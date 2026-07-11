@@ -5,11 +5,15 @@ import useChatStore from '../store/chatStore';
 import api from '../api/axios';
 import { getSocket } from '../socket/socket';
 import AudioPlayer from './AudioPlayer';
+import Lightbox from "yet-another-react-lightbox";
+import "yet-another-react-lightbox/styles.css";
+import Zoom from "yet-another-react-lightbox/plugins/zoom";
+import Video from "yet-another-react-lightbox/plugins/video";
 
 const REACTION_EMOJIS = ['❤️', '😂', '😮', '😢', '😡', '👍'];
 
 export default function MessageBubble({ message, isOwn }) {
-    const [lightboxMedia, setLightboxMedia] = useState(null);
+    const [lightboxIndex, setLightboxIndex] = useState(-1);
     const [showActions, setShowActions] = useState(false);
     const [showReactions, setShowReactions] = useState(false);
     const [editing, setEditing] = useState(false);
@@ -55,7 +59,6 @@ export default function MessageBubble({ message, isOwn }) {
     if (message.is_deleted) {
         return (
             <motion.div
-                layout
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 className={`max-w-[65%] px-3.5 py-2 italic text-xs text-text-muted ${isOwn ? 'self-end' : 'self-start'}`}
@@ -85,6 +88,16 @@ export default function MessageBubble({ message, isOwn }) {
     const linkDescription = message.linkDescription || message.link_description;
     const linkImage = message.linkImage || message.link_image;
     const linkUrl = message.linkUrl || message.link_url;
+
+    // Build Slides for Lightbox
+    const mediaUrls = fileUrls.length > 0 ? fileUrls : [fileUrl].filter(Boolean);
+    const slides = mediaUrls.map(url => {
+        if (!url) return null;
+        if (url.match(/\.(mp4|webm|mov)$/i)) {
+            return { type: 'video', width: 1280, height: 720, sources: [{ src: url, type: 'video/mp4' }] };
+        }
+        return { src: url };
+    }).filter(Boolean);
 
     // ─── Actions ────────────────────────────────────────
     const handleReply = () => {
@@ -186,7 +199,7 @@ export default function MessageBubble({ message, isOwn }) {
                             src={fileUrl || fileUrls[0]}
                             alt={fileName || fileNames[0] || 'Image'}
                             className="max-w-[260px] rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                            onClick={() => setLightboxMedia(fileUrl || fileUrls[0])}
+                            onClick={() => setLightboxIndex(0)}
                             loading="lazy"
                         />
                         {message.content && <p className="mt-1.5 text-sm">{message.content}</p>}
@@ -197,9 +210,10 @@ export default function MessageBubble({ message, isOwn }) {
                     <>
                         <video
                             src={fileUrl || fileUrls[0]}
-                            controls
-                            className="max-w-[300px] rounded-lg"
+                            className="max-w-[300px] rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                            onClick={() => setLightboxIndex(0)}
                             preload="metadata"
+                            muted
                         />
                         {message.content && <p className="mt-1.5 text-sm">{message.content}</p>}
                     </>
@@ -231,7 +245,7 @@ export default function MessageBubble({ message, isOwn }) {
                                         className={`relative rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity aspect-square bg-surface-hover
                                             ${isThreeOrMore && i === 0 ? 'col-span-2 aspect-[2/1]' : ''}
                                         `}
-                                        onClick={() => setLightboxMedia(url)}
+                                        onClick={() => setLightboxIndex(i)}
                                     >
                                         {isVideo ? (
                                             <div className="w-full h-full flex items-center justify-center bg-black/10">
@@ -313,7 +327,6 @@ export default function MessageBubble({ message, isOwn }) {
                 </div>
 
                 <motion.div
-                    layout
                     initial={isOwn ? { opacity: 0, x: 20, scale: 0.95 } : { opacity: 0, x: -20, scale: 0.95 }}
                     animate={{ opacity: 1, x: 0, scale: 1 }}
                     transition={{ duration: 0.25, type: 'spring', stiffness: 300, damping: 25 }}
@@ -444,15 +457,13 @@ export default function MessageBubble({ message, isOwn }) {
             </div>
 
             {/* Lightbox */}
-            {lightboxMedia && (
-                <div className="fixed inset-0 z-[2000] bg-black/90 flex items-center justify-center cursor-pointer" onClick={() => setLightboxMedia(null)}>
-                    {lightboxMedia.match(/\.(mp4|webm|mov)$/i) ? (
-                        <video src={lightboxMedia} controls autoPlay className="max-w-[90%] max-h-[90%] rounded-xl shadow-2xl" />
-                    ) : (
-                        <motion.img initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} src={lightboxMedia} alt="Full size" className="max-w-[90%] max-h-[90%] rounded-xl shadow-2xl" />
-                    )}
-                </div>
-            )}
+            <Lightbox
+                open={lightboxIndex >= 0}
+                close={() => setLightboxIndex(-1)}
+                index={lightboxIndex >= 0 ? lightboxIndex : 0}
+                slides={slides}
+                plugins={[Zoom, Video]}
+            />
         </>
     );
 }

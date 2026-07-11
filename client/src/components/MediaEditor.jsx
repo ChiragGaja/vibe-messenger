@@ -73,7 +73,9 @@ export default function MediaEditor({ initialFiles, onComplete, onCancel }) {
         return new Promise((resolve, reject) => {
             const image = new Image();
             image.src = state.url;
-            image.crossOrigin = 'anonymous';
+            if (!state.url.startsWith('blob:')) {
+                image.crossOrigin = 'anonymous';
+            }
             image.onload = () => {
                 const canvas = document.createElement('canvas');
                 const ctx = canvas.getContext('2d');

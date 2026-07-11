@@ -1,4 +1,4 @@
-import React, { Suspense } from 'react';
+import React, { Suspense, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import useChatStore from './store/chatStore';
 import InstallPrompt from './components/InstallPrompt';
@@ -32,6 +32,27 @@ function PublicRoute({ children }) {
 }
 
 export default function App() {
+  useEffect(() => {
+    const handleResize = () => {
+      const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+      document.documentElement.style.setProperty('--app-height', `${vh}px`);
+    };
+
+    handleResize();
+
+    window.addEventListener('resize', handleResize);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleResize);
+    }
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleResize);
+      }
+    };
+  }, []);
+
   return (
     <ErrorBoundary>
       <BrowserRouter>

@@ -309,7 +309,7 @@ export default function ChatWindow({ onBack, onToggleSidebar, sidebarOpen }) {
             </AnimatePresence>
 
             {/* Messages */}
-            <div ref={containerRef} className="flex-1 overflow-y-auto px-3 md:px-5 py-4 flex flex-col gap-1 relative">
+            <div ref={containerRef} className="flex-1 overflow-y-auto px-3 md:px-5 py-4 flex flex-col gap-1 relative" onTouchStart={() => document.activeElement?.blur()}>
                 
 
                 {hasMoreMessages && (
@@ -332,7 +332,7 @@ export default function ChatWindow({ onBack, onToggleSidebar, sidebarOpen }) {
                         <p className="text-sm font-medium">Send a message to {activeChat?.username}</p>
                     </div>
                 ) : (
-                    <AnimatePresence initial={false}>
+                    <>
                         {[...messages, ...pendingMessages.filter(m => activeChat.is_group ? m.group_id === activeChat.id : m.recipientUsername === activeChat.username)].map((msg) => (
                             <MessageBubble
                                 key={msg.id || msg.tempId}
@@ -340,7 +340,7 @@ export default function ChatWindow({ onBack, onToggleSidebar, sidebarOpen }) {
                                 isOwn={msg.sender_username === user?.username}
                             />
                         ))}
-                    </AnimatePresence>
+                    </>
                 )}
 
                 {typingUser && typingUser === activeChat?.username && (
